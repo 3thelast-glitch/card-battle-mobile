@@ -150,19 +150,19 @@ export default function ResultsScreen() {
   return (
     <ScreenContainer edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.container}>
-        {/* Trophy */}
+        {/* الكأس */}
         <Animated.View style={[styles.trophyContainer, trophyAnimatedStyle]}>
           <Text style={styles.trophyEmoji}>{getResultEmoji()}</Text>
         </Animated.View>
 
-        {/* Result Message */}
+        {/* رسالة النتيجة */}
         <Animated.View style={[styles.resultContainer, resultAnimatedStyle]}>
           <Text style={[styles.resultText, { color: getResultColor() }]}>
             {getResultMessage()}
           </Text>
         </Animated.View>
 
-        {/* Final Result */}
+        {/* النتيجة النهائية */}
         <Animated.View style={[styles.scoreContainer, scoreAnimatedStyle]}>
           <View style={styles.finalScore}>
             <View style={styles.scoreItem}>
@@ -181,7 +181,7 @@ export default function ResultsScreen() {
           </View>
         </Animated.View>
 
-        {/* Rounds Summary */}
+        {/* ملخص الجولات */}
         <View style={styles.summaryContainer}>
           <Text style={styles.summaryTitle}>ملخص الجولات</Text>
           <FlatList
@@ -193,7 +193,7 @@ export default function ResultsScreen() {
           />
         </View>
 
-        {/* Buttons */}
+        {/* الأزرار */}
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
             onPress={handlePlayAgain}

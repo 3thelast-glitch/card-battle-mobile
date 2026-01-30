@@ -8,7 +8,6 @@ import { useGame } from '@/lib/game/game-context';
 import { ALL_CARDS } from '@/lib/game/cards-data';
 import { Card } from '@/lib/game/types';
 import { ALL_ABILITIES } from '@/lib/game/abilities';
-import { getAbilityNameAr } from '@/lib/game/ability-names'; // ✅ إضافة هذا
 
 interface CardRound {
   card: Card;
@@ -22,9 +21,10 @@ export default function CardSelectionScreen() {
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const [showRoundModal, setShowRoundModal] = useState(false);
   const [shuffledCards, setShuffledCards] = useState<Card[]>([]);
+
   const totalRounds = state.totalRounds || 5;
 
-  // Create random list of cards on load
+  // إنشاء قائمة عشوائية من البطاقات عند التحميل
   useEffect(() => {
     const shuffled = [...ALL_CARDS].sort(() => Math.random() - 0.5);
     setShuffledCards(shuffled);
@@ -50,13 +50,14 @@ export default function CardSelectionScreen() {
   };
 
   const handleStartBattle = () => {
-    // Verify all cards have assigned rounds
+    // التحقق من أن جميع البطاقات لها جولات مخصصة
     const allAssigned = cardRounds.every((cr) => cr.round !== null);
     if (allAssigned) {
-      // Sort cards by rounds
+      // ترتيب البطاقات حسب الجولات
       const sortedCards = [...cardRounds]
         .sort((a, b) => (a.round || 0) - (b.round || 0))
         .map((cr) => cr.card);
+      
       setPlayerDeck(sortedCards);
       startBattle(sortedCards);
       router.push('/screens/battle' as any);
@@ -70,12 +71,12 @@ export default function CardSelectionScreen() {
       activeOpacity={0.8}
     >
       <View style={styles.cardWrapper}>
+        <CardItem card={item.card} size="medium" />
         {item.round !== null && (
           <View style={styles.roundBadge}>
             <Text style={styles.roundBadgeText}>الجولة {item.round}</Text>
           </View>
         )}
-        <CardItem card={item.card} size="medium" />
       </View>
       <Text style={styles.cardName}>{item.card.nameAr}</Text>
     </TouchableOpacity>
@@ -84,95 +85,97 @@ export default function CardSelectionScreen() {
   const allAssigned = cardRounds.every((cr) => cr.round !== null);
 
   return (
-    <ScreenContainer>
-      <LuxuryBackground />
-      <View style={styles.container}>
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>رتب بطاقاتك</Text>
-          <Text style={styles.subtitle}>اختر جولة لكل بطاقة</Text>
-        </View>
-
-        {/* Available Abilities */}
-        {state.playerAbilities && state.playerAbilities.length > 0 && (
-          <View style={styles.abilitiesContainer}>
-            <Text style={styles.abilitiesTitle}>قدراتك الخاصة:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.abilitiesList}>
-              {state.playerAbilities.map((ability, index) => (
-                <View key={index} style={styles.abilityBadge}>
-                  <Text style={styles.abilityBadgeText}>
-                    {getAbilityNameAr(ability.type)} {/* ✅ التصليح هنا */}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
+    <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
+      <LuxuryBackground>
+        <View style={styles.container}>
+          {/* Title */}
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>رتب بطاقاتك</Text>
+            <Text style={styles.subtitle}>اختر جولة لكل بطاقة</Text>
           </View>
-        )}
 
-        {/* Cards List */}
-        <FlatList
-          data={cardRounds}
-          renderItem={renderCardItem}
-          keyExtractor={(item, index) => index.toString()}
-          numColumns={2}
-          scrollEnabled={true}
-          style={styles.cardsList}
-          contentContainerStyle={styles.cardsContent}
-        />
-
-        {/* Control Buttons */}
-        <View style={styles.controlsContainer}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.push('/screens/leaderboard' as any)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.backButtonText}>← رجوع</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.startButton, !allAssigned && styles.startButtonDisabled]}
-            onPress={handleStartBattle}
-            disabled={!allAssigned}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.startButtonText}>ابدأ المعركة →</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Round Selection Modal */}
-        <Modal
-          visible={showRoundModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowRoundModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>اختر رقم الجولة</Text>
-              <ScrollView style={styles.roundsScroll}>
-                {Array.from({ length: totalRounds }, (_, i) => i + 1).map((round) => (
-                  <TouchableOpacity
-                    key={round}
-                    style={styles.roundOption}
-                    onPress={() => handleRoundSelect(round)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.roundOptionText}>الجولة {round}</Text>
-                  </TouchableOpacity>
+          {/* Available Abilities */}
+          {state.playerAbilities && state.playerAbilities.length > 0 && (
+            <View style={styles.abilitiesContainer}>
+              <Text style={styles.abilitiesTitle}>قدراتك الخاصة:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.abilitiesList}>
+                {state.playerAbilities.map((ability, index) => (
+                  <View key={index} style={styles.abilityBadge}>
+                    <Text style={styles.abilityBadgeText}>{ability}</Text>
+                  </View>
                 ))}
               </ScrollView>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowRoundModal(false)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.modalCloseButtonText}>إلغاء</Text>
-              </TouchableOpacity>
             </View>
+          )}
+
+          {/* Cards List */}
+          <FlatList
+            data={cardRounds}
+            renderItem={renderCardItem}
+            keyExtractor={(_, index) => index.toString()}
+            numColumns={2}
+            scrollEnabled={true}
+            style={styles.cardsList}
+            contentContainerStyle={styles.cardsContent}
+          />
+
+          {/* Control Buttons */}
+          <View style={styles.controlsContainer}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.push('/screens/leaderboard' as any)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.backButtonText}>← رجوع</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.startButton,
+                !allAssigned && styles.startButtonDisabled,
+              ]}
+              onPress={handleStartBattle}
+              disabled={!allAssigned}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.startButtonText}>ابدأ المعركة →</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </View>
+
+          {/* Round Selection Modal */}
+          <Modal
+            visible={showRoundModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowRoundModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>اختر رقم الجولة</Text>
+                <ScrollView style={styles.roundsScroll}>
+                  {Array.from({ length: totalRounds }, (_, i) => i + 1).map((round) => (
+                    <TouchableOpacity
+                      key={round}
+                      style={styles.roundOption}
+                      onPress={() => handleRoundSelect(round)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.roundOptionText}>الجولة {round}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setShowRoundModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.modalCloseButtonText}>إلغاء</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        </View>
+      </LuxuryBackground>
     </ScreenContainer>
   );
 }
@@ -254,7 +257,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    zIndex: 10,
   },
   roundBadgeText: {
     fontSize: 10,

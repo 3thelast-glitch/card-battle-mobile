@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Modal, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
   withDelay,
 } from 'react-native-reanimated';
+
 import { ScreenContainer } from '@/components/screen-container';
 import { CardItem } from '@/components/game/card-item';
 import { ElementEffect } from '@/components/game/element-effect';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { useGame } from '@/lib/game/game-context';
 import { ELEMENT_EMOJI, ElementAdvantage } from '@/lib/game/types';
-import { getAbilityNameAr } from '@/lib/game/ability-names';
 
 type BattlePhase = 'showing' | 'fighting' | 'result' | 'waiting';
 
@@ -42,21 +42,19 @@ const getAdvantageText = (advantage: ElementAdvantage): string => {
 
 export default function BattleScreen() {
   const router = useRouter();
-  const {
-    state,
-    playRound,
-    isGameOver,
-    currentPlayerCard,
+  const { 
+    state, 
+    playRound, 
+    isGameOver, 
+    currentPlayerCard, 
     currentBotCard,
     lastRoundResult,
-    useAbility,
   } = useGame();
 
   const [phase, setPhase] = useState<BattlePhase>('showing');
   const [showResult, setShowResult] = useState(false);
   const [showPlayerEffect, setShowPlayerEffect] = useState(false);
   const [showBotEffect, setShowBotEffect] = useState(false);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   const playerCardScale = useSharedValue(0);
   const botCardScale = useSharedValue(0);
@@ -168,32 +166,28 @@ export default function BattleScreen() {
     }
   };
 
-  const displayPlayerCard = showResult && lastRoundResult
-    ? lastRoundResult.playerCard
+  const displayPlayerCard = showResult && lastRoundResult 
+    ? lastRoundResult.playerCard 
     : currentPlayerCard;
-
-  const displayBotCard = showResult && lastRoundResult
-    ? lastRoundResult.botCard
+  const displayBotCard = showResult && lastRoundResult 
+    ? lastRoundResult.botCard 
     : currentBotCard;
 
   if (!displayPlayerCard || !displayBotCard) {
     return (
-      <ScreenContainer>
-        <LuxuryBackground />
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>جاري التحميل...</Text>
-        </View>
+      <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
+        <LuxuryBackground>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>جاري التحميل...</Text>
+          </View>
+        </LuxuryBackground>
       </ScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer>
-      <LuxuryBackground />
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
+      <LuxuryBackground>
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
@@ -217,7 +211,7 @@ export default function BattleScreen() {
                   <CardItem card={displayBotCard} size="large" />
                 </Animated.View>
                 {showBotEffect && displayBotCard && (
-                  <ElementEffect element={displayBotCard.element} style={styles.elementEffect} />
+                  <ElementEffect element={displayBotCard.element} isActive={showBotEffect} position="top" />
                 )}
               </View>
               {showResult && lastRoundResult && (
@@ -244,7 +238,7 @@ export default function BattleScreen() {
                   <CardItem card={displayPlayerCard} size="large" />
                 </Animated.View>
                 {showPlayerEffect && displayPlayerCard && (
-                  <ElementEffect element={displayPlayerCard.element} style={styles.elementEffect} />
+                  <ElementEffect element={displayPlayerCard.element} isActive={showPlayerEffect} position="bottom" />
                 )}
               </View>
               {showResult && lastRoundResult && (
@@ -270,118 +264,29 @@ export default function BattleScreen() {
             </Animated.View>
           )}
 
-          {/* Ability Buttons - ✅ دائماً ظاهرة */}
-          <View style={styles.abilitiesContainer}>
-            {state.playerAbilities.map((ability, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.abilityButton,
-                  ability.used && styles.abilityButtonDisabled
-                ]}
-                onPress={() => {
-                  if (!ability.used) {
-                    useAbility(ability.type);
-                    if (Platform.OS !== 'web') {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }
-                  }
-                }}
-                disabled={ability.used}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.abilityButtonText}>
-                  {ability.used ? '\u2717 ' : '\u2713 '}
-                  {getAbilityNameAr(ability.type)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Control Buttons */}
+          {/* Next Round Button */}
           {phase === 'waiting' && (
-            <View style={styles.controlsContainer}>
-              <TouchableOpacity
-                style={styles.historyButton}
-                onPress={() => setShowHistoryModal(true)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.historyButtonText}>📋 السجل</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.nextButton}
-                onPress={handleNextRound}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.nextButtonText}>
-                  {isGameOver ? '🏆 عرض النتائج' : '➡️ الجولة التالية'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.nextButton}
+              onPress={handleNextRound}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.nextButtonText}>
+                {isGameOver ? '🏆 عرض النتائج' : '➡️ الجولة التالية'}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
-      </ScrollView>
-
-      {/* Battle History Modal */}
-      <Modal
-        visible={showHistoryModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowHistoryModal(false)}
-      >
-        <View style={styles.historyModalOverlay}>
-          <View style={styles.historyModalContent}>
-            <View style={styles.historyModalHeader}>
-              <Text style={styles.historyModalTitle}>سجل البطاقات</Text>
-              <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
-                <Text style={styles.historyModalCloseButton}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.historyScroll}>
-              {state.roundResults.map((result) => (
-                <View key={result.round} style={styles.historyRoundItem}>
-                  <Text style={styles.historyRoundNumber}>الجولة {result.round}</Text>
-                  <View style={styles.historyCardsRow}>
-                    <View style={styles.historyCardSection}>
-                      <Text style={styles.historyCardLabel}>👤 أنت</Text>
-                      <Text style={styles.historyCardName}>{result.playerCard.nameAr}</Text>
-                      <Text style={styles.historyCardStats}>الضرر: {result.playerDamage}</Text>
-                    </View>
-                    <View style={styles.historyVS}>
-                      <Text style={styles.historyVSText}>VS</Text>
-                    </View>
-                    <View style={styles.historyCardSection}>
-                      <Text style={styles.historyCardLabel}>🤖 البوت</Text>
-                      <Text style={styles.historyCardName}>{result.botCard.nameAr}</Text>
-                      <Text style={styles.historyCardStats}>الضرر: {result.botDamage}</Text>
-                    </View>
-                  </View>
-                  <Text style={[
-                    styles.historyWinner,
-                    { color: result.winner === 'player' ? '#4ade80' : result.winner === 'bot' ? '#f87171' : '#fbbf24' }
-                  ]}>
-                    {result.winner === 'player' ? '✓ أنت الفائز' : result.winner === 'bot' ? '✗ البوت يفوز' : '= تعادل'}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      </LuxuryBackground>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    flexGrow: 1,
-  },
   container: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    minHeight: '100%',
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
   },
   loadingContainer: {
     flex: 1,
@@ -394,13 +299,12 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   roundText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#d4af37',
     marginBottom: 8,
-    fontWeight: 'bold',
   },
   scoreBoard: {
     flexDirection: 'row',
@@ -408,212 +312,71 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   score: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
   },
   scoreSeparator: {
-    fontSize: 24,
+    fontSize: 20,
     color: '#a0a0a0',
   },
   battleArea: {
-    justifyContent: 'space-around',
+    flex: 1,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
   },
   cardSection: {
     alignItems: 'center',
-    marginVertical: 8,
   },
   cardWrapper: {
     position: 'relative',
   },
-  elementEffect: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
   playerLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#a0a0a0',
-    marginVertical: 8,
-    fontWeight: 'bold',
+    marginVertical: 6,
   },
   damageContainer: {
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 6,
   },
   damageText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#e94560',
     fontWeight: 'bold',
   },
   advantageText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
-    marginTop: 4,
+    marginTop: 2,
   },
   vsContainer: {
-    paddingVertical: 8,
+    paddingVertical: 4,
     alignItems: 'center',
   },
   vsText: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#e94560',
   },
   resultContainer: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   resultText: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-  },
-  abilitiesContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-    flexWrap: 'wrap',
-  },
-  abilityButton: {
-    backgroundColor: '#d4af37',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
-    minWidth: 100,
-    alignItems: 'center',
-  },
-  abilityButtonDisabled: {
-    backgroundColor: '#666',
-    opacity: 0.5,
-  },
-  abilityButtonText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    textAlign: 'center',
-  },
-  controlsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'center',
-    paddingTop: 16,
-    paddingBottom: 16,
-  },
-  historyButton: {
-    backgroundColor: '#666',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 24,
-  },
-  historyButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#fff',
   },
   nextButton: {
     backgroundColor: '#d4af37',
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    flex: 1,
+    borderRadius: 16,
+    padding: 14,
     alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
   nextButtonText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1a1a1a',
-  },
-  historyModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'flex-end',
-  },
-  historyModalContent: {
-    backgroundColor: '#1a1a1a',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-    borderTopWidth: 2,
-    borderTopColor: '#d4af37',
-  },
-  historyModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  historyModalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#d4af37',
-  },
-  historyModalCloseButton: {
-    fontSize: 24,
-    color: '#a0a0a0',
-  },
-  historyScroll: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  historyRoundItem: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: '#d4af37',
-  },
-  historyRoundNumber: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#d4af37',
-    marginBottom: 8,
-  },
-  historyCardsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  historyCardSection: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  historyCardLabel: {
-    fontSize: 12,
-    color: '#a0a0a0',
-    marginBottom: 4,
-  },
-  historyCardName: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#eee',
-    marginBottom: 4,
-  },
-  historyCardStats: {
-    fontSize: 11,
-    color: '#888',
-  },
-  historyVS: {
-    marginHorizontal: 8,
-  },
-  historyVSText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#d4af37',
-  },
-  historyWinner: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 8,
   },
 });

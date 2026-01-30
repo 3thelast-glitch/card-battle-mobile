@@ -31,7 +31,7 @@ export function CardItem({ card, isSelected = false, showStats = true, size = 'm
         },
       ]}
     >
-      {/* Card Header */}
+      {/* رأس البطاقة */}
       <View style={[styles.header, { backgroundColor: elementColor + '40' }]}>
         <Text style={[styles.raceEmoji, { fontSize: currentSize.fontSize }]}>
           {RACE_EMOJI[card.race]}
@@ -41,12 +41,12 @@ export function CardItem({ card, isSelected = false, showStats = true, size = 'm
         </Text>
       </View>
 
-      {/* Card Icon */}
+      {/* أيقونة البطاقة */}
       <View style={styles.iconContainer}>
         <Text style={{ fontSize: currentSize.emojiSize }}>{card.emoji}</Text>
       </View>
 
-      {/* Card Name */}
+      {/* اسم البطاقة */}
       <Text 
         style={[styles.name, { fontSize: currentSize.fontSize }]} 
         numberOfLines={1}
@@ -54,7 +54,7 @@ export function CardItem({ card, isSelected = false, showStats = true, size = 'm
         {card.nameAr}
       </Text>
 
-      {/* Stats */}
+      {/* الإحصائيات */}
       {showStats && (
         <View style={styles.stats}>
           <View style={styles.statRow}>
@@ -72,7 +72,7 @@ export function CardItem({ card, isSelected = false, showStats = true, size = 'm
         </View>
       )}
 
-      {/* Class Badge */}
+      {/* شارة الفئة */}
       <View style={[styles.classBadge, { backgroundColor: elementColor }]}>
         <Text style={{ fontSize: currentSize.fontSize - 2 }}>
           {CLASS_EMOJI[card.cardClass]}

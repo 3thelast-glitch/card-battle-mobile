@@ -35,7 +35,7 @@ export default function BattleResultsScreen() {
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
         <ScrollView contentContainerStyle={styles.container}>
-          {/* Final Result */}
+          {/* النتيجة النهائية */}
           <View style={styles.resultContainer}>
             <Text style={styles.resultTitle}>كروت الجولات السابقة</Text>
             <View style={styles.scoreContainer}>
@@ -55,7 +55,7 @@ export default function BattleResultsScreen() {
             </Text>
           </View>
 
-          {/* Rounds History */}
+          {/* سجل الجولات */}
           <View style={styles.historyContainer}>
             <Text style={styles.historyTitle}>سجل الجولات</Text>
             {state.roundResults && state.roundResults.length > 0 ? (
@@ -109,7 +109,7 @@ export default function BattleResultsScreen() {
             )}
           </View>
 
-          {/* Control Buttons */}
+          {/* أزرار التحكم */}
           <View style={styles.controlsContainer}>
             <TouchableOpacity
               style={styles.homeButton}

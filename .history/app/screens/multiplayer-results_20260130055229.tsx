@@ -63,10 +63,10 @@ export default function MultiplayerResultsScreen() {
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
         <ScrollView contentContainerStyle={styles.container}>
-          {/* Title */}
+          {/* العنوان */}
           <Text style={styles.title}>نتائج المباراة</Text>
           
-          {/* Final Result */}
+          {/* النتيجة النهائية */}
           <View style={styles.resultContainer}>
             <View style={styles.playerResult}>
               <Text style={styles.playerName}>أنت</Text>
@@ -87,7 +87,7 @@ export default function MultiplayerResultsScreen() {
             </View>
           </View>
           
-          {/* Result Message */}
+          {/* رسالة النتيجة */}
           <View style={styles.messageContainer}>
             {winner === 'player' && (
               <>
@@ -109,7 +109,7 @@ export default function MultiplayerResultsScreen() {
             )}
           </View>
           
-          {/* Match Stats */}
+          {/* إحصائيات المباراة */}
           <View style={styles.statsContainer}>
             <Text style={styles.statsTitle}>إحصائيات المباراة</Text>
             
@@ -129,7 +129,7 @@ export default function MultiplayerResultsScreen() {
             </View>
           </View>
           
-          {/* Buttons */}
+          {/* الأزرار */}
           <View style={styles.buttonsContainer}>
             <TouchableOpacity
               style={styles.primaryButton}

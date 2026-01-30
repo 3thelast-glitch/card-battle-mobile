@@ -30,13 +30,13 @@ export default function SplashScreen() {
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
         <View style={styles.container}>
-          {/* Title */}
+          {/* العنوان */}
           <Animated.View style={[styles.titleContainer, titleAnimatedStyle]}>
             <Text style={styles.title}>Card Clash</Text>
             <Text style={styles.subtitle}>ربح الكروت حسب الجولة</Text>
           </Animated.View>
 
-          {/* Buttons */}
+          {/* الأزرار */}
           <Animated.View style={[styles.buttonContainer, buttonAnimatedStyle]}>
             <TouchableOpacity
               style={styles.startButton}
