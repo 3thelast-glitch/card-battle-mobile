@@ -203,32 +203,6 @@ export function getElementAdvantage(attackerElement: Element, defenderElement: E
 }
 
 // دالة لحساب الضرر مع تأثير العناصر
-export function applyActiveEffects(card: Card, effects: ActiveEffect[] = []): Card {
-  let modifiedCard = { ...card };
-
-  if (!effects || effects.length === 0) {
-    return modifiedCard;
-  }
-
-  effects.forEach(effect => {
-    if (effect.stat === 'attack') {
-      modifiedCard.attack += effect.value;
-    } else if (effect.stat === 'defense') {
-      modifiedCard.defense += effect.value;
-    } else if (effect.stat === 'hp') {
-      modifiedCard.hp += effect.value;
-    }
-    // يمكن إضافة منطق لـ 'all' و 'ability' لاحقاً
-  });
-
-  // التأكد من أن القيم لا تقل عن الصفر
-  modifiedCard.attack = Math.max(0, modifiedCard.attack);
-  modifiedCard.defense = Math.max(0, modifiedCard.defense);
-  modifiedCard.hp = Math.max(0, modifiedCard.hp);
-
-  return modifiedCard;
-}
-
 export function calculateDamage(attacker: Card, defender: Card): { damage: number; baseDamage: number; advantage: ElementAdvantage } {
   const baseDamage = calculateBaseDamage(attacker, defender);
   const advantage = getElementAdvantage(attacker.element, defender.element);
@@ -241,9 +215,7 @@ export function calculateDamage(attacker: Card, defender: Card): { damage: numbe
 // دالة لتحديد الفائز في الجولة
 export function determineRoundWinner(
   playerCard: Card,
-  botCard: Card,
-  playerEffects: ActiveEffect[], // التأثيرات النشطة على اللاعب
-  botEffects: ActiveEffect[] // التأثيرات النشطة على البوت
+  botCard: Card
 ): { 
   winner: 'player' | 'bot' | 'draw'; 
   playerDamage: number; 
@@ -253,14 +225,10 @@ export function determineRoundWinner(
   playerElementAdvantage: ElementAdvantage;
   botElementAdvantage: ElementAdvantage;
 } {
-  // تطبيق التأثيرات على البطاقات الحالية
-  const modifiedPlayerCard = applyActiveEffects(playerCard, playerEffects);
-  const modifiedBotCard = applyActiveEffects(botCard, botEffects);
-
   // الضرر الذي يسببه اللاعب للبوت
-  const playerResult = calculateDamage(modifiedPlayerCard, modifiedBotCard);
+  const playerResult = calculateDamage(playerCard, botCard);
   // الضرر الذي يسببه البوت للاعب
-  const botResult = calculateDamage(modifiedBotCard, modifiedPlayerCard);
+  const botResult = calculateDamage(botCard, playerCard);
 
   let winner: 'player' | 'bot' | 'draw';
   if (playerResult.damage > botResult.damage) {
