@@ -290,8 +290,7 @@ export default function BattleScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={styles.abilityButtonText}>
-                  {ability.used ? "✗ " : "✓ "}
-                  {ability.type}
+                  {ability.used ? "X" : "E"} {ability.type}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -479,6 +478,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 8,
     flex: 1,
   },
   nextButtonText: {

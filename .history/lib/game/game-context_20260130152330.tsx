@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useState, ReactNode } from 'react';
-import { Card, GameState, RoundResult, ActiveEffect, AbilityType } from './types';
-import { abilityExecutors, getRandomAbilities } from './abilities';
+import { Card, GameState, RoundResult, ActiveEffect } from './types';
+import { executeAbility, getRandomAbilities } from './abilities';
 import type { DifficultyLevel } from '@/app/screens/difficulty';
 import { determineRoundWinner } from './cards-data';
 import { getBotCards } from './bot-ai';
@@ -77,10 +77,22 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       const playerCard = state.playerDeck[state.currentRound];
       const botCard = state.botDeck[state.currentRound];
-
+      
       // تصفية التأثيرات حسب الهدف
-      const allPlayerEffects = state.activeEffects.filter(e => e.target === 'player' || e.target === 'all');
-      const allBotEffects = state.activeEffects.filter(e => e.target === 'bot' || e.target === 'all');
+      const playerEffects = state.activeEffects.filter(e => e.target === 'player' || e.target === 'all');
+      const botEffects = state.activeEffects.filter(e => e.target === 'bot' || e.target === 'all');
+      
+      // القدرات أصبحت يدوية، لذا لا يوجد تنفيذ تلقائي هنا
+      let newActiveEffects = [...state.activeEffects];
+      
+      // لا يوجد تنفيذ تلقائي للقدرات هنا، يتم تنفيذها عبر إجراء USE_ABILITY
+      
+      // دمج التأثيرات الجديدة مع التأثيرات الحالية (لا يوجد تأثيرات جديدة في هذه المرحلة)
+      // يتم تطبيق التأثيرات التي نتجت عن القدرات اليدوية في إجراء USE_ABILITY
+      
+      // تصفية التأثيرات حسب الهدف
+      const allPlayerEffects = newActiveEffects.filter(e => e.target === 'player' || e.target === 'all');
+      const allBotEffects = newActiveEffects.filter(e => e.target === 'bot' || e.target === 'all');
 
       // 3. تحديد الفائز بعد تطبيق التأثيرات
       const result = determineRoundWinner(playerCard, botCard, allPlayerEffects, allBotEffects);
@@ -99,14 +111,20 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
       // 4. تحديث عدد الجولات المتبقية للتأثيرات النشطة
-      const nextActiveEffects = state.activeEffects
+      const nextActiveEffects = newActiveEffects
         .map(effect => ({ ...effect, roundsLeft: effect.roundsLeft - 1 }))
         .filter(effect => effect.roundsLeft > 0);
 
       // 5. تطبيق تأثيرات ما بعد الجولة (مثل Reinforcement, Revenge, Lifesteal)
+      let finalScore = {
+        playerScore: result.winner === 'player' ? state.playerScore + 1 : state.playerScore,
+        botScore: result.winner === 'bot' ? state.botScore + 1 : state.botScore,
+      };
+      
+      // 5. تطبيق تأثيرات ما بعد الجولة (مثل Reinforcement, Revenge, Lifesteal)
       let postRoundEffects: ActiveEffect[] = [];
-      let finalPlayerScore = result.winner === 'player' ? state.playerScore + 1 : state.playerScore;
-      let finalBotScore = result.winner === 'bot' ? state.botScore + 1 : state.botScore;
+      let finalPlayerScore = finalScore.playerScore;
+      let finalBotScore = finalScore.botScore;
 
       // القدرات التي تم استخدامها في هذه الجولة وتعتمد على نتيجة الجولة
       const usedAbilitiesInThisRound = state.usedAbilities.filter(
@@ -139,13 +157,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               });
             }
             break;
-
           case 'Lifesteal': // اللايف ستيل (مع الفوز ترجع نقطة صحة)
             if (result.winner === 'player') {
               finalPlayerScore += 1;
             }
             break;
-
           case 'Revenge': // الانتقام (في حال الخسارة +1 هجوم لكل الكروت لك)
           case 'Compensation': // التعويض (في حال الخسارة +1 دفاع لكل الكروت لك)
             if (result.winner === 'bot') {
@@ -160,13 +176,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               });
             }
             break;
-
           case 'Suicide': // الانتحار (مع الخسارة ينقص الخصم نقطة)
             if (result.winner === 'bot') {
               finalBotScore = Math.max(0, finalBotScore - 1);
             }
             break;
-
           case 'Weakening': // الإضعاف (في حال الخسارة -1 هجوم للخصم)
             if (result.winner === 'bot') {
               postRoundEffects.push({
@@ -179,7 +193,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               });
             }
             break;
-
           case 'Explosion': // الانفجار (في حال الخسارة -1 دفاع لكل كروت الخصم)
             if (result.winner === 'bot') {
               postRoundEffects.push({
@@ -192,7 +205,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               });
             }
             break;
-
           case 'DoubleOrNothing': // دبل أور نثنق: إذا فزت +1 صحة، وإذا خسرت -2 صحة
             if (result.winner === 'player') {
               finalPlayerScore += 1;
@@ -200,7 +212,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               finalPlayerScore = Math.max(0, finalPlayerScore - 2);
             }
             break;
-
           case 'Sacrifice': // تضحية: عند الخسارة تزال خاصية من خصمك
             // يتم تطبيق هذا المنطق في مكان آخر (ربما في playRound)
             break;
@@ -209,7 +220,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       // قدرات البوت التي تعتمد على نتيجة الجولة (للتوازن)
       // لا يوجد تنفيذ تلقائي للقدرات هنا، يتم تنفيذها عبر إجراء USE_ABILITY
-
+      
       // دمج التأثيرات الجديدة مع التأثيرات النشطة
       const finalActiveEffects = [...nextActiveEffects, ...postRoundEffects];
 
@@ -229,19 +240,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const executor = abilityExecutors[abilityType];
       if (!executor) return state;
 
-      // التحقق من الختم (Seal)
-      const sealEffect = state.activeEffects.find(
-        (e) => e.type === 'seal' && e.target === (isPlayer ? 'player' : 'bot') && e.stat === 'ability'
-      );
-
-      if (sealEffect) {
-        console.log(`Ability ${abilityType} is sealed for ${isPlayer ? 'player' : 'bot'}`);
-        return state;
-      }
-
       const abilityStateList = isPlayer ? state.playerAbilities : state.botAbilities;
       const abilityIndex = abilityStateList.findIndex(a => a.type === abilityType && !a.used);
-
+      
       if (abilityIndex === -1) return state; // القدرة غير متاحة أو مستخدمة
 
       const result = executor(state, isPlayer);
@@ -251,7 +252,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       newAbilityStateList[abilityIndex] = { ...newAbilityStateList[abilityIndex], used: true };
 
       // تحديث حالة اللعبة
-      let newState = {
+      const newState = {
         ...state,
         activeEffects: [...state.activeEffects, ...result.newEffects],
         usedAbilities: [...state.usedAbilities, abilityType],
@@ -261,15 +262,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         botScore: result.newBotScore !== undefined ? result.newBotScore : state.botScore,
       };
 
-      // معالجة قدرات المسح والتطهير والتحويل
+      // معالجة قدرات المسح والتطهير
       if (abilityType === 'Wipe') {
         newState.activeEffects = newState.activeEffects.filter(e => !(e.target === 'player' && e.type === 'debuff'));
       }
-
       if (abilityType === 'Purge') {
         newState.activeEffects = [];
       }
-
       if (abilityType === 'ConvertDebuffsToBuffs') {
         // تحويل النيرفات عليك لبفات
         newState.activeEffects = newState.activeEffects.map(e => {
@@ -279,7 +278,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           return e;
         });
       }
-
       if (abilityType === 'TakeIt') {
         // خذها وانا بو مبارك: اعطي النيرفات للخصم
         newState.activeEffects = newState.activeEffects.map(e => {
@@ -289,19 +287,16 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           return e;
         });
       }
-
       if (abilityType === 'Deprivation') {
         // السلب: اسلب الخصم من البفات
         newState.activeEffects = newState.activeEffects.filter(e => !(e.target === 'bot' && e.type === 'buff'));
       }
-
       if (abilityType === 'DoubleYourBuffs') {
         // دبل البفات لك
         const playerBuffs = newState.activeEffects.filter(e => e.target === 'player' && e.type === 'buff');
         const doubledBuffs = playerBuffs.map(e => ({ ...e, value: e.value * 2, sourceAbility: 'DoubleYourBuffs' as AbilityType }));
         newState.activeEffects = [...newState.activeEffects.filter(e => !(e.target === 'player' && e.type === 'buff')), ...doubledBuffs];
       }
-
       if (abilityType === 'Conversion') {
         // التحويل: حول بفات الخصم لنيرفات
         newState.activeEffects = newState.activeEffects.map(e => {
@@ -311,7 +306,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           return e;
         });
       }
-
+      
       return newState;
     }
 
@@ -357,7 +352,7 @@ interface GameContextType {
   playRound: () => void;
   addEffect: (effect: ActiveEffect) => void;
   removeEffects: (target: 'player' | 'bot' | 'all', type: 'buff' | 'debuff' | 'all') => void;
-  useAbility: (abilityType: AbilityType) => void;
+  useAbility: (abilityType: AbilityType) => void; // إضافة دالة استخدام القدرة
   resetGame: () => void;
   setDifficulty: (level: DifficultyLevel) => void;
   isGameOver: boolean;
@@ -414,17 +409,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
   };
 
   const isGameOver = state.currentRound >= state.totalRounds && state.totalRounds > 0;
-
-  const currentPlayerCard = state.currentRound < state.totalRounds
-    ? state.playerDeck[state.currentRound]
+  
+  const currentPlayerCard = state.currentRound < state.totalRounds 
+    ? state.playerDeck[state.currentRound] 
+    : null;
+  
+  const currentBotCard = state.currentRound < state.totalRounds 
+    ? state.botDeck[state.currentRound] 
     : null;
 
-  const currentBotCard = state.currentRound < state.totalRounds
-    ? state.botDeck[state.currentRound]
-    : null;
-
-  const lastRoundResult = state.roundResults.length > 0
-    ? state.roundResults[state.roundResults.length - 1]
+  const lastRoundResult = state.roundResults.length > 0 
+    ? state.roundResults[state.roundResults.length - 1] 
     : null;
 
   return (
@@ -444,7 +439,270 @@ export function GameProvider({ children }: { children: ReactNode }) {
         lastRoundResult,
         addEffect,
         removeEffects,
-        useAbility,
+        useAbility, // إضافة دالة استخدام القدرة إلى السياق
+      }}
+    >
+      {children}
+    </GameContext.Provider>
+  );
+}
+
+// هوك للاستخدام
+export function useGame() {
+  const context = useContext(GameContext);
+  if (context === undefined) {
+    throw new Error('useGame must be used within a GameProvider');
+  }
+  return context;
+}
+      
+      // تصفية التأثيرات الجديدة حسب الهدف لتطبيقها في الجولة الحالية
+      const allPlayerEffects = newActiveEffects.filter(e => e.target === 'player' || e.target === 'all');
+      const allBotEffects = newActiveEffects.filter(e => e.target === 'bot' || e.target === 'all');
+
+      // 3. تحديد الفائز بعد تطبيق التأثيرات
+      const result = determineRoundWinner(playerCard, botCard, allPlayerEffects, allBotEffects);
+
+      const roundResult: RoundResult = {
+        round: state.currentRound + 1,
+        playerCard,
+        botCard,
+        playerDamage: result.playerDamage,
+        botDamage: result.botDamage,
+        playerBaseDamage: result.playerBaseDamage,
+        botBaseDamage: result.botBaseDamage,
+        playerElementAdvantage: result.playerElementAdvantage,
+        botElementAdvantage: result.botElementAdvantage,
+        winner: result.winner,
+      };
+
+      // 4. تحديث عدد الجولات المتبقية للتأثيرات النشطة
+      const nextActiveEffects = newActiveEffects
+        .map(effect => ({ ...effect, roundsLeft: effect.roundsLeft - 1 }))
+        .filter(effect => effect.roundsLeft > 0);
+
+      // 5. تطبيق تأثيرات ما بعد الجولة (مثل Reinforcement, Revenge, Lifesteal)
+      let finalScore = {
+        playerScore: result.winner === 'player' ? state.playerScore + 1 : state.playerScore,
+        botScore: result.winner === 'bot' ? state.botScore + 1 : state.botScore,
+      };
+      
+      // 5. تطبيق تأثيرات ما بعد الجولة (مثل Reinforcement, Revenge, Lifesteal)
+      let postRoundEffects: ActiveEffect[] = [];
+      let finalPlayerScore = finalScore.playerScore;
+      let finalBotScore = finalScore.botScore;
+
+      // قدرات اللاعب التي تعتمد على نتيجة الجولة
+      if (playerCard.ability) {
+        switch (playerCard.ability) {
+          case 'Reinforcement': // التدعيم (في حال الفوز +1 دفاع لكل الكروت لك)
+          case 'Greed': // الجشع (في حال الفوز +1 هجوم لكل الكروت لك)
+            if (result.winner === 'player') {
+              const stat = playerCard.ability === 'Reinforcement' ? 'defense' : 'attack';
+              postRoundEffects.push({
+                type: 'buff',
+                target: 'player',
+                stat: stat,
+                value: 1,
+                roundsLeft: state.totalRounds - state.currentRound, // حتى نهاية اللعبة
+                sourceAbility: playerCard.ability,
+              });
+            }
+            break;
+          case 'Lifesteal': // اللايف ستيل (مع الفوز ترجع نقطة صحة)
+            if (result.winner === 'player') {
+              finalPlayerScore += 1;
+            }
+            break;
+          case 'Revenge': // الانتقام (في حال الخسارة +1 هجوم لكل الكروت لك)
+          case 'Compensation': // التعويض (في حال الخسارة +1 دفاع لكل الكروت لك)
+            if (result.winner === 'bot') {
+              const stat = playerCard.ability === 'Revenge' ? 'attack' : 'defense';
+              postRoundEffects.push({
+                type: 'buff',
+                target: 'player',
+                stat: stat,
+                value: 1,
+                roundsLeft: state.totalRounds - state.currentRound,
+                sourceAbility: playerCard.ability,
+              });
+            }
+            break;
+          case 'Suicide': // الانتحار (مع الخسارة ينقص الخصم نقطة)
+            if (result.winner === 'bot') {
+              finalBotScore = Math.max(0, finalBotScore - 1);
+            }
+            break;
+          case 'Weakening': // الإضعاف (في حال الخسارة -1 هجوم للخصم)
+            if (result.winner === 'bot') {
+              postRoundEffects.push({
+                type: 'debuff',
+                target: 'bot',
+                stat: 'attack',
+                value: -1,
+                roundsLeft: state.totalRounds - state.currentRound,
+                sourceAbility: playerCard.ability,
+              });
+            }
+            break;
+          case 'Explosion': // الانفجار (في حال الخسارة -1 دفاع لكل كروت الخصم)
+            if (result.winner === 'bot') {
+              postRoundEffects.push({
+                type: 'debuff',
+                target: 'bot',
+                stat: 'defense',
+                value: -1,
+                roundsLeft: state.totalRounds - state.currentRound,
+                sourceAbility: playerCard.ability,
+              });
+            }
+            break;
+          // القدرات المعقدة الأخرى سيتم إضافتها لاحقاً
+        }
+      }
+
+      // قدرات البوت التي تعتمد على نتيجة الجولة (للتوازن)
+      if (botCard.ability) {
+        // يمكن إضافة منطق مماثل هنا إذا كان البوت يستخدم قدرات ما بعد الجولة
+      }
+
+      // دمج التأثيرات الجديدة مع التأثيرات النشطة
+      const finalActiveEffects = [...nextActiveEffects, ...postRoundEffects];
+
+      return {
+        ...state,
+        currentRound: state.currentRound + 1,
+        playerScore: finalPlayerScore,
+        botScore: finalBotScore,
+        roundResults: [...state.roundResults, roundResult],
+        activeEffects: finalActiveEffects,
+      };
+    }
+
+    case 'ADD_EFFECT':
+      return {
+        ...state,
+        activeEffects: [...state.activeEffects, action.payload],
+      };
+
+    case 'REMOVE_EFFECTS': {
+      const { target, type } = action.payload;
+      return {
+        ...state,
+        activeEffects: state.activeEffects.filter(effect => {
+          const targetMatch = target === 'all' || effect.target === target;
+          const typeMatch = type === 'all' || effect.type === type;
+          return !(targetMatch && typeMatch);
+        }),
+      };
+    }
+
+    case 'SET_DIFFICULTY':
+      return {
+        ...state,
+        difficulty: action.payload,
+      };
+
+    case 'RESET_GAME':
+      return { ...initialState, difficulty: state.difficulty };
+
+    default:
+      return state;
+  }
+}
+
+// السياق
+interface GameContextType {
+  state: GameState;
+  difficulty: DifficultyLevel;
+  setPlayerDeck: (cards: Card[]) => void;
+  setTotalRounds: (rounds: number) => void;
+  startBattle: (playerDeck?: Card[]) => void;
+  playRound: () => void;
+  addEffect: (effect: ActiveEffect) => void;
+  removeEffects: (target: 'player' | 'bot' | 'all', type: 'buff' | 'debuff' | 'all') => void;
+  resetGame: () => void;
+  setDifficulty: (level: DifficultyLevel) => void;
+  isGameOver: boolean;
+  currentPlayerCard: Card | null;
+  currentBotCard: Card | null;
+  lastRoundResult: RoundResult | null;
+}
+
+const GameContext = createContext<GameContextType | undefined>(undefined);
+
+// المزود
+export function GameProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [difficulty, setDifficultyState] = useState<DifficultyLevel>(initialDifficulty);
+
+  const setPlayerDeck = (cards: Card[]) => {
+    dispatch({ type: 'SET_PLAYER_DECK', payload: cards });
+  };
+
+  const setTotalRounds = (rounds: number) => {
+    dispatch({ type: 'SET_TOTAL_ROUNDS', payload: rounds });
+  };
+
+  const startBattle = (playerDeck?: Card[]) => {
+    const deck = playerDeck || state.playerDeck;
+    // توليد بطاقات البوت حسب مستوى الصعوبة
+    const botDeck = getBotCards(deck.length, difficulty, deck);
+    dispatch({ type: 'SET_BOT_DECK', payload: botDeck });
+    dispatch({ type: 'START_BATTLE' });
+  };
+
+  const playRound = () => {
+    dispatch({ type: 'PLAY_ROUND' });
+  };
+
+  const addEffect = (effect: ActiveEffect) => {
+    dispatch({ type: 'ADD_EFFECT', payload: effect });
+  };
+
+  const removeEffects = (target: 'player' | 'bot' | 'all', type: 'buff' | 'debuff' | 'all') => {
+    dispatch({ type: 'REMOVE_EFFECTS', payload: { target, type } });
+  };
+
+  const resetGame = () => {
+    dispatch({ type: 'RESET_GAME' });
+  };
+
+  const setDifficulty = (level: DifficultyLevel) => {
+    setDifficultyState(level);
+  };
+
+  const isGameOver = state.currentRound >= state.totalRounds && state.totalRounds > 0;
+  
+  const currentPlayerCard = state.currentRound < state.totalRounds 
+    ? state.playerDeck[state.currentRound] 
+    : null;
+  
+  const currentBotCard = state.currentRound < state.totalRounds 
+    ? state.botDeck[state.currentRound] 
+    : null;
+
+  const lastRoundResult = state.roundResults.length > 0 
+    ? state.roundResults[state.roundResults.length - 1] 
+    : null;
+
+  return (
+    <GameContext.Provider
+      value={{
+        state,
+        difficulty,
+        setPlayerDeck,
+        setTotalRounds,
+        startBattle,
+        playRound,
+        resetGame,
+        setDifficulty,
+        isGameOver,
+        currentPlayerCard,
+        currentBotCard,
+        lastRoundResult,
+        addEffect,
+        removeEffects,
       }}
     >
       {children}

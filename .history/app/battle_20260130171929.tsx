@@ -272,31 +272,29 @@ export default function BattleScreen() {
         {phase !== "waiting" && (
           <View style={styles.abilitiesContainer}>
             {state.playerAbilities.map((ability, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.abilityButton,
-                  ability.used && styles.abilityButtonDisabled
-                ]}
-                onPress={() => {
-                  if (!ability.used) {
-                    useAbility(ability.type);
-                    if (Platform.OS !== "web") {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }
-                  }
-                }}
-                disabled={ability.used}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.abilityButtonText}>
-                  {ability.used ? "✗ " : "✓ "}
-                  {ability.type}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+  <TouchableOpacity
+    key={index}
+    style={[
+      styles.abilityButton,
+      ability.used && styles.abilityButtonDisabled
+    ]}
+    onPress={() => {
+      if (!ability.used) {
+        useAbility(ability.type);
+        if (Platform.OS !== "web") {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      }
+    }}
+    disabled={ability.used}
+    activeOpacity={0.8}
+  >
+    <Text style={styles.abilityButtonText}>
+      {ability.used ? "X" : "E"} {ability.type}
+    </Text>
+  </TouchableOpacity>
+))}
+
 
         {/* أزرار التحكم */}
         {phase === 'waiting' && (
@@ -479,6 +477,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 8,
     flex: 1,
   },
   nextButtonText: {

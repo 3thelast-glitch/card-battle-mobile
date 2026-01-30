@@ -76,7 +76,7 @@ export type AbilityType =
 export interface ActiveEffect {
   type: 'buff' | 'debuff' | 'seal';
   target: 'player' | 'bot' | 'all';
-  stat: 'attack' | 'defense' | 'hp' | 'all' | 'ability';
+  stat: 'attack' | 'defense' | 'hp' | 'all' | 'ability' | 'all-stats';
   value: number; // قيمة التأثير (للهجوم والدفاع)
   roundsLeft: number; // عدد الجولات المتبقية
   sourceAbility: AbilityType; // القدرة التي سببت التأثير

@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Modal, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
   withDelay,
 } from 'react-native-reanimated';
+
 import { ScreenContainer } from '@/components/screen-container';
 import { CardItem } from '@/components/game/card-item';
 import { ElementEffect } from '@/components/game/element-effect';
@@ -41,11 +43,11 @@ const getAdvantageText = (advantage: ElementAdvantage): string => {
 
 export default function BattleScreen() {
   const router = useRouter();
-  const {
-    state,
-    playRound,
-    isGameOver,
-    currentPlayerCard,
+  const { 
+    state, 
+    playRound, 
+    isGameOver, 
+    currentPlayerCard, 
     currentBotCard,
     lastRoundResult,
     useAbility,
@@ -110,6 +112,7 @@ export default function BattleScreen() {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         }
       }
+
       setPhase('waiting');
     }
   }, [phase, lastRoundResult, resultOpacity]);
@@ -166,226 +169,204 @@ export default function BattleScreen() {
     }
   };
 
-  const displayPlayerCard = showResult && lastRoundResult
-    ? lastRoundResult.playerCard
+  const displayPlayerCard = showResult && lastRoundResult 
+    ? lastRoundResult.playerCard 
     : currentPlayerCard;
-
-  const displayBotCard = showResult && lastRoundResult
-    ? lastRoundResult.botCard
+  const displayBotCard = showResult && lastRoundResult 
+    ? lastRoundResult.botCard 
     : currentBotCard;
 
   if (!displayPlayerCard || !displayBotCard) {
     return (
-      <ScreenContainer>
-        <LuxuryBackground />
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>جاري التحميل...</Text>
-        </View>
+      <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
+        <LuxuryBackground>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>جاري التحميل...</Text>
+          </View>
+        </LuxuryBackground>
       </ScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer>
-      <LuxuryBackground />
-      <View style={styles.container}>
-        {/* الرأس */}
-        <View style={styles.header}>
-          <Text style={styles.roundText}>
-            الجولة {showResult ? lastRoundResult?.round : state.currentRound + 1}/{state.totalRounds}
-          </Text>
-          <View style={styles.scoreBoard}>
-            <Text style={[styles.score, { color: '#4ade80' }]}>
-              {state.playerScore}
+    <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
+      <LuxuryBackground>
+        <View style={styles.container}>
+          {/* الرأس */}
+          <View style={styles.header}>
+            <Text style={styles.roundText}>
+              الجولة {showResult ? lastRoundResult?.round : state.currentRound + 1}/{state.totalRounds}
             </Text>
-            <Text style={styles.scoreSeparator}>-</Text>
-            <Text style={[styles.score, { color: '#f87171' }]}>
-              {state.botScore}
-            </Text>
+            <View style={styles.scoreBoard}>
+              <Text style={[styles.score, { color: '#4ade80' }]}>{state.playerScore}</Text>
+              <Text style={styles.scoreSeparator}>-</Text>
+              <Text style={[styles.score, { color: '#f87171' }]}>{state.botScore}</Text>
+            </View>
           </View>
-        </View>
 
-        {/* منطقة المعركة */}
-        <View style={styles.battleArea}>
-          {/* بطاقة البوت */}
-          <View style={styles.cardSection}>
-            <Text style={styles.playerLabel}>🤖 البوت</Text>
-            <Animated.View style={[styles.cardWrapper, botCardAnimatedStyle]}>
-              {showBotEffect && displayBotCard && (
-                <ElementEffect element={displayBotCard.element} />
-              )}
-              <CardItem card={displayBotCard} />
-            </Animated.View>
-            {showResult && lastRoundResult && (
-              <View style={styles.damageContainer}>
-                <Text style={styles.damageText}>
-                  الضرر: {lastRoundResult.botDamage}
-                </Text>
-                {lastRoundResult.botElementAdvantage !== 'neutral' && (
-                  <Text style={[styles.advantageText, { color: getAdvantageColor(lastRoundResult.botElementAdvantage) }]}>
-                    {ELEMENT_EMOJI[lastRoundResult.botCard.element]} {getAdvantageText(lastRoundResult.botElementAdvantage)}
-                  </Text>
+          {/* منطقة المعركة */}
+          <View style={styles.battleArea}>
+            {/* بطاقة البوت */}
+            <View style={styles.cardSection}>
+              <Text style={styles.playerLabel}>🤖 البوت</Text>
+              <View style={styles.cardWrapper}>
+                <Animated.View style={botCardAnimatedStyle}>
+                  <CardItem card={displayBotCard} size="large" />
+                </Animated.View>
+                {showBotEffect && displayBotCard && (
+                  <ElementEffect element={displayBotCard.element} isActive={showBotEffect} position="top" />
                 )}
               </View>
-            )}
-          </View>
-
-          {/* VS */}
-          <Animated.View style={[styles.vsContainer, vsAnimatedStyle]}>
-            <Text style={styles.vsText}>⚔️ VS ⚔️</Text>
-          </Animated.View>
-
-          {/* بطاقة اللاعب */}
-          <View style={styles.cardSection}>
-            <Animated.View style={[styles.cardWrapper, playerCardAnimatedStyle]}>
-              {showPlayerEffect && displayPlayerCard && (
-                <ElementEffect element={displayPlayerCard.element} />
+              {showResult && lastRoundResult && (
+                <View style={styles.damageContainer}>
+                  <Text style={styles.damageText}>الضرر: {lastRoundResult.botDamage}</Text>
+                  {lastRoundResult.botElementAdvantage !== 'neutral' && (
+                    <Text style={[styles.advantageText, { color: getAdvantageColor(lastRoundResult.botElementAdvantage) }]}>
+                      {ELEMENT_EMOJI[lastRoundResult.botCard.element]} {getAdvantageText(lastRoundResult.botElementAdvantage)}
+                    </Text>
+                  )}
+                </View>
               )}
-              <CardItem card={displayPlayerCard} />
+            </View>
+
+            {/* VS */}
+            <Animated.View style={[styles.vsContainer, vsAnimatedStyle]}>
+              <Text style={styles.vsText}>⚔️ VS ⚔️</Text>
             </Animated.View>
-            {showResult && lastRoundResult && (
-              <View style={styles.damageContainer}>
-                <Text style={styles.damageText}>
-                  الضرر: {lastRoundResult.playerDamage}
-                </Text>
-                {lastRoundResult.playerElementAdvantage !== 'neutral' && (
-                  <Text style={[styles.advantageText, { color: getAdvantageColor(lastRoundResult.playerElementAdvantage) }]}>
-                    {ELEMENT_EMOJI[lastRoundResult.playerCard.element]} {getAdvantageText(lastRoundResult.playerElementAdvantage)}
-                  </Text>
+
+            {/* بطاقة اللاعب */}
+            <View style={styles.cardSection}>
+              <View style={styles.cardWrapper}>
+                <Animated.View style={playerCardAnimatedStyle}>
+                  <CardItem card={displayPlayerCard} size="large" />
+                </Animated.View>
+                {showPlayerEffect && displayPlayerCard && (
+                  <ElementEffect element={displayPlayerCard.element} isActive={showPlayerEffect} position="bottom" />
                 )}
               </View>
-            )}
-            <Text style={styles.playerLabel}>👤 أنت</Text>
+              {showResult && lastRoundResult && (
+                <View style={styles.damageContainer}>
+                  <Text style={styles.damageText}>الضرر: {lastRoundResult.playerDamage}</Text>
+                  {lastRoundResult.playerElementAdvantage !== 'neutral' && (
+                    <Text style={[styles.advantageText, { color: getAdvantageColor(lastRoundResult.playerElementAdvantage) }]}>
+                      {ELEMENT_EMOJI[lastRoundResult.playerCard.element]} {getAdvantageText(lastRoundResult.playerElementAdvantage)}
+                    </Text>
+                  )}
+                </View>
+              )}
+              <Text style={styles.playerLabel}>👤 أنت</Text>
+            </View>
           </View>
-        </View>
 
-        {/* نتيجة الجولة */}
-        {showResult && (
-          <Animated.View style={[styles.resultContainer, resultAnimatedStyle]}>
-            <Text style={[styles.resultText, { color: getResultColor() }]}>
-              {getResultMessage()}
-            </Text>
-          </Animated.View>
-        )}
-
-        {/* أزرار القدرات */}
-        {phase !== "waiting" && (
-          <View style={styles.abilitiesContainer}>
-            {state.playerAbilities.map((ability, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.abilityButton,
-                  ability.used && styles.abilityButtonDisabled
-                ]}
-                onPress={() => {
-                  if (!ability.used) {
-                    useAbility(ability.type);
-                    if (Platform.OS !== "web") {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          {/* نتيجة الجولة */}
+          {showResult && (
+            <Animated.View style={[styles.resultContainer, resultAnimatedStyle]}>
+              <Text style={[styles.resultText, { color: getResultColor() }]}>
+                {getResultMessage()}
+              </Text>
+            </Animated.View>
+          )}
+          {/* أزرار القدرات */}
+          {phase !== "waiting" && (
+            <View style={styles.abilitiesContainer}>
+              {state.playerAbilities.map((ability, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.abilityButton,
+                    ability.used && styles.abilityButtonDisabled,
+                  ]}
+                  onPress={() => {
+                    if (!ability.used) {
+                      useAbility(ability.type);
+                      if (Platform.OS !== "web") {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }
                     }
-                  }
-                }}
-                disabled={ability.used}
+                  }}
+                  disabled={ability.used}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.abilityButtonText}>
+                    {ability.used ? "X" : "E"} {ability.type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+
+          {/* أزرار التحكم */}
+          {phase === 'waiting' && (
+            <View style={styles.controlsContainer}>
+              <TouchableOpacity
+                style={styles.historyButton}
+                onPress={() => setShowHistoryModal(true)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.abilityButtonText}>
-                  {ability.used ? "✗ " : "✓ "}
-                  {ability.type}
+                <Text style={styles.historyButtonText}>📋 السجل</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.nextButton}
+                onPress={handleNextRound}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.nextButtonText}>
+                  {isGameOver ? '🏆 عرض النتائج' : '➡️ الجولة التالية'}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* أزرار التحكم */}
-        {phase === 'waiting' && (
-          <View style={styles.controlsContainer}>
-            <TouchableOpacity
-              style={styles.historyButton}
-              onPress={() => setShowHistoryModal(true)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.historyButtonText}>📋 السجل</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.nextButton}
-              onPress={handleNextRound}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.nextButtonText}>
-                {isGameOver ? '🏆 عرض النتائج' : '➡️ الجولة التالية'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
-      {/* Modal لعرض سجل البطاقات */}
-      <Modal
-        visible={showHistoryModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowHistoryModal(false)}
-      >
-        <View style={styles.historyModalOverlay}>
-          <View style={styles.historyModalContent}>
-            <View style={styles.historyModalHeader}>
-              <Text style={styles.historyModalTitle}>سجل البطاقات</Text>
-              <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
-                <Text style={styles.historyModalCloseButton}>✕</Text>
-              </TouchableOpacity>
             </View>
-            <ScrollView style={styles.historyScroll}>
-              {state.roundResults.map((result) => (
-                <View key={result.round} style={styles.historyRoundItem}>
-                  <Text style={styles.historyRoundNumber}>
-                    الجولة {result.round}
-                  </Text>
-                  <View style={styles.historyCardsRow}>
-                    <View style={styles.historyCardSection}>
-                      <Text style={styles.historyCardLabel}>👤 أنت</Text>
-                      <Text style={styles.historyCardName}>
-                        {result.playerCard.nameAr}
-                      </Text>
-                      <Text style={styles.historyCardStats}>
-                        الضرر: {result.playerDamage}
-                      </Text>
-                    </View>
-                    <View style={styles.historyVS}>
-                      <Text style={styles.historyVSText}>VS</Text>
-                    </View>
-                    <View style={styles.historyCardSection}>
-                      <Text style={styles.historyCardLabel}>🤖 البوت</Text>
-                      <Text style={styles.historyCardName}>
-                        {result.botCard.nameAr}
-                      </Text>
-                      <Text style={styles.historyCardStats}>
-                        الضرر: {result.botDamage}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text
-                    style={[
-                      styles.historyWinner,
-                      {
-                        color:
-                          result.winner === "player"
-                            ? "#4ade80"
-                            : result.winner === "bot"
-                            ? "#f87171"
-                            : "#fbbf24",
-                      },
-                    ]}
-                  >
-                    {result.winner === "player" ? "✓ أنت الفائز" : result.winner === "bot" ? "✗ البوت يفوز" : "= تعادل"}
-                  </Text>
+          )}
+
+          {/* Modal لعرض سجل البطاقات */}
+          <Modal
+            visible={showHistoryModal}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowHistoryModal(false)}
+          >
+            <View style={styles.historyModalOverlay}>
+              <View style={styles.historyModalContent}>
+                <View style={styles.historyModalHeader}>
+                  <Text style={styles.historyModalTitle}>سجل البطاقات</Text>
+                  <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
+                    <Text style={styles.historyModalCloseButton}>✕</Text>
+                  </TouchableOpacity>
                 </View>
-              ))}
-            </ScrollView>
-          </View>
+                <ScrollView style={styles.historyScroll}>
+                  {state.roundResults.map((result) => (
+                    <View key={result.round} style={styles.historyRoundItem}>
+                      <Text style={styles.historyRoundNumber}>الجولة {result.round}</Text>
+                      <View style={styles.historyCardsRow}>
+                        <View style={styles.historyCardSection}>
+                          <Text style={styles.historyCardLabel}>👤 أنت</Text>
+                          <Text style={styles.historyCardName}>{result.playerCard.nameAr}</Text>
+                          <Text style={styles.historyCardStats}>
+                            الضرر: {result.playerDamage}
+                          </Text>
+                        </View>
+                        <View style={styles.historyVS}>
+                          <Text style={styles.historyVSText}>VS</Text>
+                        </View>
+                        <View style={styles.historyCardSection}>
+                          <Text style={styles.historyCardLabel}>🤖 البوت</Text>
+                          <Text style={styles.historyCardName}>{result.botCard.nameAr}</Text>
+                          <Text style={styles.historyCardStats}>
+                            الضرر: {result.botDamage}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.historyWinner, { color: result.winner === "player" ? "#4ade80" : result.winner === "bot" ? "#f87171" : "#fbbf24" }]}>
+                        {result.winner === "player" ? "✓ أنت الفائز" : result.winner === "bot" ? "✗ البوت يفوز" : "= تعادل"}
+                      </Text>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
         </View>
-      </Modal>
+      </LuxuryBackground>
     </ScreenContainer>
   );
 }
@@ -479,13 +460,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
-    flex: 1,
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
   nextButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1a1a1a',
   },
+});
+
   controlsContainer: {
     flexDirection: 'row',
     gap: 12,
@@ -592,6 +576,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
+
   abilitiesContainer: {
     flexDirection: 'row',
     gap: 8,
@@ -618,4 +603,3 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     textAlign: 'center',
   },
-});

@@ -2,13 +2,65 @@ import { Card, AbilityType, ActiveEffect, GameState } from './types';
 
 // قائمة بجميع القدرات المتاحة
 export const ALL_ABILITIES: AbilityType[] = [
-  'LogicalEncounter', 'Recall', 'Protection', 'Arise', 'Reinforcement', 'Wipe', 'Purge', 'HalvePoints', 'Seal', 'DoubleOrNothing', 'StarSuperiority', 'Reduction', 'Sacrifice', 'Popularity', 'Eclipse', 'CancelAbility', 'Revive', 'Shambles', 'ConsecutiveLossBuff', 'Lifesteal', 'Revenge', 'Suicide', 'Disaster', 'Compensation', 'Weakening', 'Misdirection', 'StealAbility', 'Rescue', 'Trap', 'ConvertDebuffsToBuffs', 'Sniping', 'Merge', 'DoubleNextCards', 'Deprivation', 'Greed', 'Dilemma', 'Subhan', 'Propaganda', 'DoubleYourBuffs', 'Avatar', 'Penetration', 'Pool', 'Conversion', 'Shield', 'SwapClass', 'TakeIt', 'Skip', 'AddElement', 'Explosion', 'DoublePoints', 'ElementalMastery'
+  'LogicalEncounter', // مصادفة منطقية
+  'Recall', // استدعاء
+  'Protection', // حماية
+  'Arise', // أرايز
+  'Reinforcement', // التدعيم
+  'Wipe', // المسح
+  'Purge', // التطهير
+  'HalvePoints', // خصم نقاط الكرت للنصف
+  'Seal', // الختم
+  'DoubleOrNothing', // دبل أور نثنق
+  'StarSuperiority', // كل كروتك تتفوق بالنجوم على الخصم
+  'Reduction', // التقليص
+  'Sacrifice', // تضحية
+  'Popularity', // الشعبية
+  'Eclipse', // الخسف
+  'CancelAbility', // الغاء خاصية
+  'Revive', // إنعاش
+  'Shambles', // شامبلز
+  'ConsecutiveLossBuff', // في حال خسارة جولتين متتاليتين
+  'Lifesteal', // اللايف ستيل
+  'Revenge', // الانتقام
+  'Suicide', // الانتحار
+  'Disaster', // النكبة
+  'Compensation', // التعويض
+  'Weakening', // الإضعاف
+  'Misdirection', // التضليل
+  'StealAbility', // سرقة الخاصية
+  'Rescue', // الانقاذ
+  'Trap', // الفخ
+  'ConvertDebuffsToBuffs', // حول النيرفات عليك لبفات
+  'Sniping', // القنص
+  'Merge', // الدمج
+  'DoubleNextCards', // المضاعفة
+  'Deprivation', // السلب
+  'Greed', // الجشع
+  'Dilemma', // الوهقه
+  'Subhan', // الصبحان
+  'Propaganda', // بروباغاندا
+  'DoubleYourBuffs', // دبل البفات لك
+  'Avatar', // افاتار
+  'Penetration', // الاختراق
+  'Pool', // المسبح
+  'Conversion', // التحويل
+  'Shield', // الدرع
+  'SwapClass', // بدل فئة واحده من عندك مع فئة واحده من خصمك
+  'TakeIt', // خذها وانا بو مبارك
+  'Skip', // سكب
+  'AddElement', // اضافة عنصر لأي كرت
+  'Explosion', // الانفجار
+  'DoublePoints', // دبل النقاط
+  'ElementalMastery', // إتقان العناصر
 ];
 
 // دالة لاختيار عدد محدد من القدرات العشوائية وغير المكررة
 export function getRandomAbilities(count: number): AbilityType[] {
   const shuffled = [...ALL_ABILITIES].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+  // نضمن عدم تكرار القدرات
+  const uniqueAbilities = Array.from(new Set(shuffled));
+  return uniqueAbilities.slice(0, count);
 }
 
 // تعريف واجهة لدالة تنفيذ القدرة
@@ -76,16 +128,9 @@ export const abilityExecutors: Record<AbilityType, AbilityExecutor> = {
     return { newEffects: [] };
   },
   HalvePoints: (state, isPlayer) => {
-    const target = isPlayer ? 'bot' : 'player';
-    const effect: ActiveEffect = {
-      type: 'debuff',
-      target: target,
-      stat: 'attack',
-      value: 0.5, // سيتم التعامل مع هذا كنسبة مئوية
-      roundsLeft: 1,
-      sourceAbility: 'HalvePoints',
-    };
-    return { newEffects: [effect] };
+    // خصم نقاط الكرت للنصف
+    // يتم تطبيق هذا التأثير على الكرت الحالي للخصم
+    return { newEffects: [] };
   },
   Seal: (state, isPlayer) => {
     // الختم: تعطيل قدرة خصم لمدة خمس جولات
@@ -111,16 +156,9 @@ export const abilityExecutors: Record<AbilityType, AbilityExecutor> = {
     return { newEffects: [] };
   },
   Reduction: (state, isPlayer) => {
-    const target = isPlayer ? 'bot' : 'player';
-    const effect: ActiveEffect = {
-      type: 'debuff',
-      target: target,
-      stat: 'all-stats',
-      value: -2,
-      roundsLeft: 1,
-      sourceAbility: 'Reduction',
-    };
-    return { newEffects: [effect] };
+    // التقليص: -2 لكل عناصر الخصم
+    // يتم تطبيق هذا التأثير على الكرت الحالي للخصم
+    return { newEffects: [] };
   },
   Sacrifice: (state, isPlayer) => {
     // تضحية: عند الخسارة تزال خاصية من خصمك
@@ -133,16 +171,9 @@ export const abilityExecutors: Record<AbilityType, AbilityExecutor> = {
     return { newEffects: [] };
   },
   Eclipse: (state, isPlayer) => {
-    const target = isPlayer ? 'bot' : 'player';
-    const effect: ActiveEffect = {
-      type: 'debuff',
-      target: target,
-      stat: 'attack',
-      value: -Infinity, // القيمة -Infinity تعني أن الهجوم سيصبح 0
-      roundsLeft: 1,
-      sourceAbility: 'Eclipse',
-    };
-    return { newEffects: [effect] };
+    // الخسف: هجوم خصمك 0 بدون البفات
+    // يتم تطبيق هذا التأثير على الكرت الحالي للخصم
+    return { newEffects: [] };
   },
   CancelAbility: (state, isPlayer) => {
     // الغاء خاصية
@@ -265,28 +296,14 @@ export const abilityExecutors: Record<AbilityType, AbilityExecutor> = {
     return { newEffects: [] };
   },
   Avatar: (state, isPlayer) => {
-    const target = isPlayer ? 'player' : 'bot';
-    const effect: ActiveEffect = {
-      type: 'buff',
-      target: target,
-      stat: 'all-stats',
-      value: 2,
-      roundsLeft: 1,
-      sourceAbility: 'Avatar',
-    };
-    return { newEffects: [effect] };
+    // افاتار: +2 لكل العناصر لك
+    // يتم تطبيق هذا التأثير على الكرت الحالي
+    return { newEffects: [] };
   },
   Penetration: (state, isPlayer) => {
-    const target = isPlayer ? 'bot' : 'player';
-    const effect: ActiveEffect = {
-      type: 'debuff',
-      target: target,
-      stat: 'defense',
-      value: -Infinity, // القيمة -Infinity تعني أن الدفاع سيصبح 0
-      roundsLeft: 1,
-      sourceAbility: 'Penetration',
-    };
-    return { newEffects: [effect] };
+    // الاختراق: نقاط دفاع الخصم 0
+    // يتم تطبيق هذا التأثير على الكرت الحالي للخصم
+    return { newEffects: [] };
   },
   Pool: (state, isPlayer) => {
     // المسبح: اغراق كرت الخصم وبقاء تأثير كرتك
@@ -340,7 +357,37 @@ export const abilityExecutors: Record<AbilityType, AbilityExecutor> = {
 };
 
 // دالة تنفيذ القدرة لم تعد تستخدم، سيتم استبدالها بدالة executeManualAbility
-
+export function executeAbility(
+  card: Card,
+  opponentCard: Card,
+  state: GameState,
+  isPlayer: boolean,
+): AbilityExecutionResult {
+  // هذه الدالة لم تعد تستخدم لأن القدرات أصبحت يدوية
+  return { newEffects: [] };
+}
 
 // دالة تنفيذ القدرة اليدوية
+export function executeManualAbility(
+  abilityType: AbilityType,
+  state: GameState,
+  isPlayer: boolean,
+): AbilityExecutionResult {
+  const executor = abilityExecutors[abilityType];
+  if (!executor) {
+    console.warn(`No executor found for manual ability: ${abilityType} - abilities.ts:378`);
+    return { newEffects: [] };
+  }
 
+  // التحقق من الختم (Seal)
+  const sealEffect = state.activeEffects.find(
+    (e) => e.type === 'seal' && e.target === (isPlayer ? 'player' : 'bot') && e.stat === 'ability'
+  );
+
+  if (sealEffect) {
+    console.log(`Ability ${abilityType} is sealed for ${isPlayer ? 'player' : 'bot'} - abilities.ts:388`);
+    return { newEffects: [] };
+  }
+
+  return executor(state, isPlayer);
+}
