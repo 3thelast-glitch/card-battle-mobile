@@ -8,7 +8,6 @@ import Animated, {
   withTiming,
   withDelay,
 } from 'react-native-reanimated';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScreenContainer } from '@/components/screen-container';
 import { CardItem } from '@/components/game/card-item';
 import { ElementEffect } from '@/components/game/element-effect';
@@ -254,8 +253,7 @@ const EditSidebar = ({
           <Text style={styles.sidebarInfoText}>
             💡 اسحب العناصر بحرية{'\n'}
             📐 استخدم الشبكة للتوزيع المتوازن{'\n'}
-            🎯 احفظ التخطيط عند الانتهاء{'\n'}
-            💾 يُحفظ تلقائياً عند التعديل
+            🎯 احفظ التخطيط عند الانتهاء
           </Text>
         </View>
       </ScrollView>
@@ -559,7 +557,7 @@ const DraggableResizable = ({
     </RNAnimated.View>
   );
 };
-// ✅ Main BattleScreen Component مع نظام الحفظ التلقائي
+// ✅ Main BattleScreen Component
 export default function BattleScreen() {
   const router = useRouter();
   const {
@@ -583,77 +581,20 @@ export default function BattleScreen() {
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   
-  // ✅ التخطيط الافتراضي حسب الصورة
-  const DEFAULT_LAYOUT = {
-    playerCard: { x: -250, y: 0, scale: 1, minScale: 0.5, maxScale: 2 },
-    botCard: { x: 250, y: 0, scale: 1, minScale: 0.5, maxScale: 2 },
-    vs: { x: 0, y: 0, scale: 1, minScale: 0.5, maxScale: 2.5 },
-    score: { x: 0, y: -150, scale: 1, minScale: 0.6, maxScale: 2 },
-    round: { x: 0, y: -220, scale: 1, minScale: 0.6, maxScale: 2 },
-    result: { x: 0, y: 280, scale: 1.2, minScale: 0.7, maxScale: 2.5 },
-    abilities: { x: -450, y: 0, scale: 1, minScale: 0.5, maxScale: 1.8 },
-  };
-
-  const [elements, setElements] = useState(DEFAULT_LAYOUT);
+  const [elements, setElements] = useState({
+    playerCard: { x: -150, y: 150, scale: 1, minScale: 0.5, maxScale: 2 },
+    botCard: { x: 150, y: 150, scale: 1, minScale: 0.5, maxScale: 2 },
+    vs: { x: 0, y: 150, scale: 1, minScale: 0.5, maxScale: 2.5 },
+    score: { x: 0, y: -200, scale: 1, minScale: 0.6, maxScale: 2 },
+    round: { x: 0, y: -250, scale: 1, minScale: 0.6, maxScale: 2 },
+    result: { x: 0, y: 250, scale: 1, minScale: 0.7, maxScale: 2.5 },
+    abilities: { x: -300, y: 0, scale: 1, minScale: 0.5, maxScale: 1.8 },
+  });
 
   const playerCardScale = useSharedValue(0);
   const botCardScale = useSharedValue(0);
   const vsOpacity = useSharedValue(0);
   const resultOpacity = useSharedValue(0);
-
-  // ✅ تحميل التخطيط المحفوظ عند بدء الصفحة
-  useEffect(() => {
-    loadLayout();
-  }, []);
-
-  // ✅ حفظ التخطيط تلقائياً عند التعديل
-  useEffect(() => {
-    if (editMode) {
-      saveLayout();
-    }
-  }, [elements, editMode]);
-
-  // ✅ دالة تحميل التخطيط
-  const loadLayout = async () => {
-    try {
-      const savedLayout = await AsyncStorage.getItem('battleLayout');
-      if (savedLayout) {
-        setElements(JSON.parse(savedLayout));
-        console.log('✅ تم تحميل التخطيط المحفوظ');
-      } else {
-        console.log('📌 استخدام التخطيط الافتراضي');
-      }
-    } catch (error) {
-      console.error('❌ خطأ في تحميل التخطيط:', error);
-    }
-  };
-
-  // ✅ دالة حفظ التخطيط
-  const saveLayout = async () => {
-    try {
-      await AsyncStorage.setItem('battleLayout', JSON.stringify(elements));
-      console.log('💾 تم حفظ التخطيط');
-    } catch (error) {
-      console.error('❌ خطأ في حفظ التخطيط:', error);
-    }
-  };
-
-  const updateElement = (id: string, data: any) => {
-    setElements((prev) => ({
-      ...prev,
-      [id]: { ...prev[id as keyof typeof prev], ...data },
-    }));
-  };
-
-  const resetLayout = async () => {
-    setElements(DEFAULT_LAYOUT);
-    try {
-      await AsyncStorage.removeItem('battleLayout');
-      console.log('🔄 تم إعادة ضبط التخطيط');
-    } catch (error) {
-      console.error('❌ خطأ في إعادة الضبط:', error);
-    }
-  };
 
   useEffect(() => {
     if (currentPlayerCard && currentBotCard && phase === 'showing' && !editMode) {
@@ -775,6 +716,25 @@ export default function BattleScreen() {
   const displayBotCard = showResult && lastRoundResult
     ? lastRoundResult.botCard
     : currentBotCard;
+
+  const updateElement = (id: string, data: any) => {
+    setElements((prev) => ({
+      ...prev,
+      [id]: { ...prev[id as keyof typeof prev], ...data },
+    }));
+  };
+
+  const resetLayout = () => {
+    setElements({
+      playerCard: { x: -150, y: 150, scale: 1, minScale: 0.5, maxScale: 2 },
+      botCard: { x: 150, y: 150, scale: 1, minScale: 0.5, maxScale: 2 },
+      vs: { x: 0, y: 150, scale: 1, minScale: 0.5, maxScale: 2.5 },
+      score: { x: 0, y: -200, scale: 1, minScale: 0.6, maxScale: 2 },
+      round: { x: 0, y: -250, scale: 1, minScale: 0.6, maxScale: 2 },
+      result: { x: 0, y: 250, scale: 1, minScale: 0.7, maxScale: 2.5 },
+      abilities: { x: -300, y: 0, scale: 1, minScale: 0.5, maxScale: 1.8 },
+    });
+  };
 
   if (!displayPlayerCard || !displayBotCard) {
     return (
@@ -1608,6 +1568,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
 
+  // ✅ مقابض التكبير
   transformHandlesContainer: {
     position: 'absolute',
     top: -30,
@@ -1663,6 +1624,7 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
 
+  // ✅ أزرار التكبير الثابتة
   fixedScaleControls: {
     position: 'absolute',
     bottom: -60,

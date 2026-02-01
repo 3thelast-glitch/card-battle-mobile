@@ -8,7 +8,6 @@ import Animated, {
   withTiming,
   withDelay,
 } from 'react-native-reanimated';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScreenContainer } from '@/components/screen-container';
 import { CardItem } from '@/components/game/card-item';
 import { ElementEffect } from '@/components/game/element-effect';
@@ -45,379 +44,10 @@ const getAdvantageText = (advantage: ElementAdvantage): string => {
   }
 };
 
-// ✅ حدود الصفحة
-const PageBorders = () => {
-  return (
-    <View style={styles.pageBorders} pointerEvents="none">
-      <View style={styles.borderTop} />
-      <View style={styles.borderBottom} />
-      <View style={styles.borderLeft} />
-      <View style={styles.borderRight} />
-      
-      <View style={[styles.corner, styles.cornerTopLeft]} />
-      <View style={[styles.corner, styles.cornerTopRight]} />
-      <View style={[styles.corner, styles.cornerBottomLeft]} />
-      <View style={[styles.corner, styles.cornerBottomRight]} />
-    </View>
-  );
-};
-
-// ✅ شبكة إرشادية
-const GridOverlay = () => {
-  return (
-    <View style={styles.gridContainer} pointerEvents="none">
-      <View style={styles.verticalLine} />
-      <View style={styles.horizontalLine} />
-      <View style={[styles.verticalLineThin, { left: '25%' }]} />
-      <View style={[styles.verticalLineThin, { left: '75%' }]} />
-      <View style={[styles.horizontalLineThin, { top: '25%' }]} />
-      <View style={[styles.horizontalLineThin, { top: '75%' }]} />
-      <View style={styles.centerDot} />
-      
-      <View style={[styles.quadrantLabel, { left: '25%', top: '25%' }]}>
-        <Text style={styles.quadrantText}>↖</Text>
-      </View>
-      <View style={[styles.quadrantLabel, { left: '75%', top: '25%' }]}>
-        <Text style={styles.quadrantText}>↗</Text>
-      </View>
-      <View style={[styles.quadrantLabel, { left: '25%', top: '75%' }]}>
-        <Text style={styles.quadrantText}>↙</Text>
-      </View>
-      <View style={[styles.quadrantLabel, { left: '75%', top: '75%' }]}>
-        <Text style={styles.quadrantText}>↘</Text>
-      </View>
-    </View>
-  );
-};
-
-// ✅ Sidebar جانبي
-const EditSidebar = ({ 
-  visible, 
-  onClose, 
-  elements, 
-  onElementUpdate,
-  showGrid,
-  onToggleGrid,
-  snapToGrid,
-  onToggleSnap,
-  onResetLayout 
-}: any) => {
-  const slideAnim = useRef(new RNAnimated.Value(-300)).current;
-
-  useEffect(() => {
-    RNAnimated.timing(slideAnim, {
-      toValue: visible ? 0 : -300,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [visible]);
-
-  return (
-    <RNAnimated.View style={[
-      styles.sidebar,
-      { transform: [{ translateX: slideAnim }] }
-    ]}>
-      <View style={styles.sidebarHeader}>
-        <Text style={styles.sidebarTitle}>🎨 أدوات التحرير</Text>
-        <TouchableOpacity onPress={onClose} style={styles.sidebarCloseButton}>
-          <Text style={styles.sidebarCloseButtonText}>✕</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.sidebarContent}>
-        <View style={styles.sidebarSection}>
-          <Text style={styles.sidebarSectionTitle}>⚙️ إعدادات الشبكة</Text>
-          
-          <TouchableOpacity
-            style={[styles.sidebarOption, showGrid && styles.sidebarOptionActive]}
-            onPress={onToggleGrid}
-          >
-            <Text style={styles.sidebarOptionText}>
-              {showGrid ? '✓' : '○'} إظهار الشبكة
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.sidebarOption, snapToGrid && styles.sidebarOptionActive]}
-            onPress={onToggleSnap}
-          >
-            <Text style={styles.sidebarOptionText}>
-              {snapToGrid ? '✓' : '○'} التقاط تلقائي
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.sidebarSection}>
-          <Text style={styles.sidebarSectionTitle}>📦 العناصر</Text>
-          
-          {Object.entries(elements).map(([key, value]: [string, any]) => (
-            <View key={key} style={styles.elementItem}>
-              <Text style={styles.elementItemLabel}>
-                {key === 'playerCard' ? '👤 بطاقة اللاعب' :
-                 key === 'botCard' ? '🤖 بطاقة البوت' :
-                 key === 'vs' ? '⚔️ VS' :
-                 key === 'score' ? '📊 النقاط' :
-                 key === 'round' ? '🔢 الجولة' :
-                 key === 'result' ? '🏆 النتيجة' :
-                 key === 'abilities' ? '🎮 القدرات' : key}
-              </Text>
-              <View style={styles.elementItemControls}>
-                <Text style={styles.elementItemValue}>
-                  الحجم: {Math.round(value.scale * 100)}%
-                </Text>
-                <Text style={styles.elementItemValue}>
-                  X: {value.x.toFixed(0)} Y: {value.y.toFixed(0)}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.sidebarSection}>
-          <Text style={styles.sidebarSectionTitle}>⚡ إجراءات سريعة</Text>
-          
-          <TouchableOpacity
-            style={styles.sidebarActionButton}
-            onPress={onResetLayout}
-          >
-            <Text style={styles.sidebarActionButtonText}>🔄 إعادة ضبط الكل</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.sidebarActionButton, styles.sidebarActionButtonSecondary]}
-            onPress={() => {
-              const newElements = { ...elements };
-              newElements.playerCard.y = 0;
-              newElements.botCard.y = 0;
-              newElements.vs.y = 0;
-              Object.keys(newElements).forEach(key => {
-                onElementUpdate(key, newElements[key as keyof typeof newElements]);
-              });
-            }}
-          >
-            <Text style={styles.sidebarActionButtonText}>↔️ محاذاة أفقية</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.sidebarActionButton, styles.sidebarActionButtonSecondary]}
-            onPress={() => {
-              const newElements = { ...elements };
-              newElements.score.x = 0;
-              newElements.round.x = 0;
-              newElements.vs.x = 0;
-              Object.keys(newElements).forEach(key => {
-                onElementUpdate(key, newElements[key as keyof typeof newElements]);
-              });
-            }}
-          >
-            <Text style={styles.sidebarActionButtonText}>↕️ محاذاة عمودية</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.sidebarSection}>
-          <Text style={styles.sidebarSectionTitle}>🎮 ترتيب القدرات</Text>
-          
-          <TouchableOpacity
-            style={[styles.sidebarActionButton, styles.sidebarActionButtonSecondary]}
-            onPress={() => {
-              const abilities = elements.abilities;
-              const newX = -abilities.y;
-              const newY = abilities.x;
-              onElementUpdate('abilities', { ...abilities, x: newX, y: newY });
-            }}
-          >
-            <Text style={styles.sidebarActionButtonText}>🔄 تدوير 90°</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.sidebarActionButton, styles.sidebarActionButtonSecondary]}
-            onPress={() => {
-              const abilities = elements.abilities;
-              onElementUpdate('abilities', { ...abilities, x: 0, y: 300 });
-            }}
-          >
-            <Text style={styles.sidebarActionButtonText}>↔️ ترتيب أفقي (أسفل)</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.sidebarActionButton, styles.sidebarActionButtonSecondary]}
-            onPress={() => {
-              const abilities = elements.abilities;
-              onElementUpdate('abilities', { ...abilities, x: -300, y: 0 });
-            }}
-          >
-            <Text style={styles.sidebarActionButtonText}>↕️ ترتيب عمودي (يسار)</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.sidebarSection}>
-          <Text style={styles.sidebarInfoText}>
-            💡 اسحب العناصر بحرية{'\n'}
-            📐 استخدم الشبكة للتوزيع المتوازن{'\n'}
-            🎯 احفظ التخطيط عند الانتهاء{'\n'}
-            💾 يُحفظ تلقائياً عند التعديل
-          </Text>
-        </View>
-      </ScrollView>
-    </RNAnimated.View>
-  );
-};
-
-// ✅ مقبض تكبير واحد
-const ResizeHandle = ({ 
-  position, 
-  onResizeStart, 
-  onResizeMove, 
-  onResizeEnd 
-}: any) => {
-  const initialScale = useRef(1);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      
-      onPanResponderGrant: (evt) => {
-        evt.stopPropagation();
-        initialScale.current = onResizeStart();
-      },
-      
-      onPanResponderMove: (evt, gestureState) => {
-        evt.stopPropagation();
-        
-        let scaleDelta = 0;
-        
-        if (position.includes('corner')) {
-          const distance = Math.sqrt(
-            gestureState.dx ** 2 + gestureState.dy ** 2
-          );
-          const direction = gestureState.dx + gestureState.dy > 0 ? 1 : -1;
-          scaleDelta = (distance * direction) / 200;
-        } else if (position === 'top' || position === 'bottom') {
-          scaleDelta = gestureState.dy / 200;
-        } else {
-          scaleDelta = gestureState.dx / 200;
-        }
-        
-        onResizeMove(position, initialScale.current + scaleDelta);
-      },
-      
-      onPanResponderRelease: () => {
-        onResizeEnd();
-      },
-    })
-  ).current;
-
-  return (
-    <View
-      {...panResponder.panHandlers}
-      style={[
-        styles.resizeHandle,
-        styles[`resizeHandle_${position.replace('-', '')}`],
-      ]}
-    >
-      <View style={styles.resizeHandleInner} />
-    </View>
-  );
-};
-
-// ✅ مقابض التحويل
-const TransformHandles = ({ 
-  scale, 
-  onScaleChange, 
-  onResizeStart,
-  onResizeMove,
-  onResizeEnd,
-  minScale, 
-  maxScale 
-}: any) => {
-  const positions = [
-    'top-left',
-    'top-right',
-    'bottom-left',
-    'bottom-right',
-    'top',
-    'bottom',
-    'left',
-    'right',
-  ];
-
-  return (
-    <View style={styles.transformHandlesContainer} pointerEvents="box-none">
-      {positions.map((pos) => (
-        <ResizeHandle
-          key={pos}
-          position={pos}
-          onResizeStart={onResizeStart}
-          onResizeMove={onResizeMove}
-          onResizeEnd={onResizeEnd}
-        />
-      ))}
-      
-      <View style={styles.centerDotHandle} pointerEvents="none">
-        <View style={styles.centerDotInner} />
-      </View>
-    </View>
-  );
-};
-
-// ✅ Component قابل للسحب والتكبير مع زر ثابت الحجم
-const DraggableResizable = ({ 
-  children, 
-  id, 
-  initialX = 0, 
-  initialY = 0, 
-  initialScale = 1, 
-  onUpdate, 
-  minScale = 0.5, 
-  maxScale = 2.5, 
-  snapToGrid = false 
-}: any) => {
+// ✅ Component قابل للتحريك - نظام مطلق
+const DraggableResizable = ({ children, id, initialX = 0, initialY = 0, initialScale = 1, onUpdate, minScale = 0.5, maxScale = 2.5 }: any) => {
+  const pan = useRef(new RNAnimated.ValueXY({ x: CENTER_X + initialX, y: CENTER_Y + initialY })).current;
   const [scale, setScale] = useState(initialScale);
-  const [isResizing, setIsResizing] = useState(false);
-  
-  const position = useRef({ x: CENTER_X + initialX, y: CENTER_Y + initialY });
-  const pan = useRef(new RNAnimated.ValueXY(position.current)).current;
-  
-  useEffect(() => {
-    const newPos = { x: CENTER_X + initialX, y: CENTER_Y + initialY };
-    position.current = newPos;
-    pan.setValue(newPos);
-    setScale(initialScale);
-  }, [initialX, initialY, initialScale]);
-
-  const handleResizeStart = () => {
-    setIsResizing(true);
-    return scale;
-  };
-
-  const handleResizeMove = (position: string, newScale: number) => {
-    const clampedScale = Math.max(minScale, Math.min(maxScale, newScale));
-    setScale(clampedScale);
-  };
-
-  const handleResizeEnd = () => {
-    setIsResizing(false);
-    if (onUpdate) {
-      onUpdate(id, {
-        x: position.current.x - CENTER_X,
-        y: position.current.y - CENTER_Y,
-        scale,
-      });
-    }
-  };
-
-  const handleScaleChange = (delta: number) => {
-    const newScale = Math.max(minScale, Math.min(maxScale, scale + delta));
-    setScale(newScale);
-    if (onUpdate) {
-      onUpdate(id, {
-        x: position.current.x - CENTER_X,
-        y: position.current.y - CENTER_Y,
-        scale: newScale,
-      });
-    }
-  };
 
   const calculateBounds = () => {
     const margin = 100;
@@ -431,48 +61,34 @@ const DraggableResizable = ({
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !isResizing,
-      onMoveShouldSetPanResponder: () => !isResizing,
-      
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         pan.setOffset({
-          x: position.current.x,
-          y: position.current.y,
+          x: (pan.x as any)._value,
+          y: (pan.y as any)._value,
         });
-        pan.setValue({ x: 0, y: 0 });
       },
-      
       onPanResponderMove: RNAnimated.event(
         [null, { dx: pan.x, dy: pan.y }],
         { useNativeDriver: false }
       ),
-      
-      onPanResponderRelease: (evt, gestureState) => {
+      onPanResponderRelease: () => {
         pan.flattenOffset();
         
-        let finalX = position.current.x + gestureState.dx;
-        let finalY = position.current.y + gestureState.dy;
-
         const bounds = calculateBounds();
-        finalX = Math.max(bounds.minX, Math.min(bounds.maxX, finalX));
-        finalY = Math.max(bounds.minY, Math.min(bounds.maxY, finalY));
+        let finalX = (pan.x as any)._value;
+        let finalY = (pan.y as any)._value;
 
-        if (snapToGrid) {
-          const gridSize = 50;
-          finalX = Math.round(finalX / gridSize) * gridSize;
-          finalY = Math.round(finalY / gridSize) * gridSize;
-        }
+        if (finalX < bounds.minX) finalX = bounds.minX;
+        if (finalX > bounds.maxX) finalX = bounds.maxX;
+        if (finalY < bounds.minY) finalY = bounds.minY;
+        if (finalY > bounds.maxY) finalY = bounds.maxY;
 
-        position.current = { x: finalX, y: finalY };
-        
-        RNAnimated.spring(pan, {
-          toValue: { x: finalX, y: finalY },
-          useNativeDriver: false,
-          friction: 8,
-          tension: 40,
-        }).start();
+        pan.setValue({ x: finalX, y: finalY });
 
         if (onUpdate) {
+          // ✅ حفظ الإحداثيات النسبية للمركز
           onUpdate(id, {
             x: finalX - CENTER_X,
             y: finalY - CENTER_Y,
@@ -483,14 +99,25 @@ const DraggableResizable = ({
     })
   ).current;
 
+  const handleScaleChange = (delta: number) => {
+    const newScale = Math.max(minScale, Math.min(maxScale, scale + delta));
+    setScale(newScale);
+    if (onUpdate) {
+      onUpdate(id, {
+        x: (pan.x as any)._value - CENTER_X,
+        y: (pan.y as any)._value - CENTER_Y,
+        scale: newScale,
+      });
+    }
+  };
+
   return (
     <RNAnimated.View
-      style={[{ position: 'absolute', left: 0, top: 0 }]}
-      {...panResponder.panHandlers}
-    >
-      {/* ✅ المحتوى المُكبَّر */}
-      <RNAnimated.View
-        style={{
+      style={[
+        {
+          position: 'absolute',
+          left: 0,
+          top: 0,
           transform: [
             { translateX: pan.x },
             { translateY: pan.y },
@@ -498,68 +125,47 @@ const DraggableResizable = ({
             { translateY: -50 },
             { scale },
           ],
-        }}
-      >
-        <View style={styles.draggableContainer}>
-          {children}
-          
-          <TransformHandles
-            scale={scale}
-            onScaleChange={handleScaleChange}
-            onResizeStart={handleResizeStart}
-            onResizeMove={handleResizeMove}
-            onResizeEnd={handleResizeEnd}
-            minScale={minScale}
-            maxScale={maxScale}
-          />
-        </View>
-      </RNAnimated.View>
-      
-      {/* ✅ الزر الثابت خارج Scale */}
-      <RNAnimated.View
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          transform: [
-            { translateX: pan.x },
-            { translateY: pan.y },
-          ],
-        }}
-        pointerEvents="box-none"
-      >
-        <View style={styles.fixedScaleControls} pointerEvents="auto">
+        },
+      ]}
+      {...panResponder.panHandlers}
+    >
+      <View style={styles.draggableContainer}>
+        {children}
+        
+        <View style={styles.controlButtons}>
           <TouchableOpacity
-            style={[styles.scaleControlButton, scale <= minScale && styles.scaleControlButtonDisabled]}
+            style={[styles.scaleButton, scale <= minScale && styles.scaleButtonDisabled]}
             onPress={(e) => {
               e.stopPropagation();
               handleScaleChange(-0.1);
             }}
             disabled={scale <= minScale}
           >
-            <Text style={styles.scaleControlButtonText}>−</Text>
+            <Text style={styles.scaleButtonText}>−</Text>
           </TouchableOpacity>
           
-          <View style={styles.scaleControlDisplay}>
-            <Text style={styles.scaleControlText}>{Math.round(scale * 100)}%</Text>
-          </View>
+          <Text style={styles.scaleIndicator}>{scale.toFixed(1)}x</Text>
           
           <TouchableOpacity
-            style={[styles.scaleControlButton, scale >= maxScale && styles.scaleControlButtonDisabled]}
+            style={[styles.scaleButton, scale >= maxScale && styles.scaleButtonDisabled]}
             onPress={(e) => {
               e.stopPropagation();
               handleScaleChange(0.1);
             }}
             disabled={scale >= maxScale}
           >
-            <Text style={styles.scaleControlButtonText}>+</Text>
+            <Text style={styles.scaleButtonText}>+</Text>
           </TouchableOpacity>
         </View>
-      </RNAnimated.View>
+        
+        <View style={styles.dragHandle}>
+          <Text style={styles.dragHandleText}>✥</Text>
+        </View>
+      </View>
     </RNAnimated.View>
   );
 };
-// ✅ Main BattleScreen Component مع نظام الحفظ التلقائي
+
 export default function BattleScreen() {
   const router = useRouter();
   const {
@@ -579,81 +185,22 @@ export default function BattleScreen() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   const [editMode, setEditMode] = useState(false);
-  const [showGrid, setShowGrid] = useState(true);
-  const [snapToGrid, setSnapToGrid] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false);
   
-  // ✅ التخطيط الافتراضي حسب الصورة
-  const DEFAULT_LAYOUT = {
-    playerCard: { x: -250, y: 0, scale: 1, minScale: 0.5, maxScale: 2 },
-    botCard: { x: 250, y: 0, scale: 1, minScale: 0.5, maxScale: 2 },
-    vs: { x: 0, y: 0, scale: 1, minScale: 0.5, maxScale: 2.5 },
-    score: { x: 0, y: -150, scale: 1, minScale: 0.6, maxScale: 2 },
-    round: { x: 0, y: -220, scale: 1, minScale: 0.6, maxScale: 2 },
-    result: { x: 0, y: 280, scale: 1.2, minScale: 0.7, maxScale: 2.5 },
-    abilities: { x: -450, y: 0, scale: 1, minScale: 0.5, maxScale: 1.8 },
-  };
-
-  const [elements, setElements] = useState(DEFAULT_LAYOUT);
+  // ✅ المواقع النسبية للمركز
+  const [elements, setElements] = useState({
+    playerCard: { x: -150, y: 150, scale: 1, minScale: 0.5, maxScale: 2 },
+    botCard: { x: 150, y: 150, scale: 1, minScale: 0.5, maxScale: 2 },
+    vs: { x: 0, y: 150, scale: 1, minScale: 0.5, maxScale: 2.5 },
+    score: { x: 0, y: -200, scale: 1, minScale: 0.6, maxScale: 2 },
+    round: { x: 0, y: -250, scale: 1, minScale: 0.6, maxScale: 2 },
+    result: { x: 0, y: 250, scale: 1, minScale: 0.7, maxScale: 2.5 },
+    abilities: { x: -300, y: 0, scale: 1, minScale: 0.5, maxScale: 1.8 },
+  });
 
   const playerCardScale = useSharedValue(0);
   const botCardScale = useSharedValue(0);
   const vsOpacity = useSharedValue(0);
   const resultOpacity = useSharedValue(0);
-
-  // ✅ تحميل التخطيط المحفوظ عند بدء الصفحة
-  useEffect(() => {
-    loadLayout();
-  }, []);
-
-  // ✅ حفظ التخطيط تلقائياً عند التعديل
-  useEffect(() => {
-    if (editMode) {
-      saveLayout();
-    }
-  }, [elements, editMode]);
-
-  // ✅ دالة تحميل التخطيط
-  const loadLayout = async () => {
-    try {
-      const savedLayout = await AsyncStorage.getItem('battleLayout');
-      if (savedLayout) {
-        setElements(JSON.parse(savedLayout));
-        console.log('✅ تم تحميل التخطيط المحفوظ');
-      } else {
-        console.log('📌 استخدام التخطيط الافتراضي');
-      }
-    } catch (error) {
-      console.error('❌ خطأ في تحميل التخطيط:', error);
-    }
-  };
-
-  // ✅ دالة حفظ التخطيط
-  const saveLayout = async () => {
-    try {
-      await AsyncStorage.setItem('battleLayout', JSON.stringify(elements));
-      console.log('💾 تم حفظ التخطيط');
-    } catch (error) {
-      console.error('❌ خطأ في حفظ التخطيط:', error);
-    }
-  };
-
-  const updateElement = (id: string, data: any) => {
-    setElements((prev) => ({
-      ...prev,
-      [id]: { ...prev[id as keyof typeof prev], ...data },
-    }));
-  };
-
-  const resetLayout = async () => {
-    setElements(DEFAULT_LAYOUT);
-    try {
-      await AsyncStorage.removeItem('battleLayout');
-      console.log('🔄 تم إعادة ضبط التخطيط');
-    } catch (error) {
-      console.error('❌ خطأ في إعادة الضبط:', error);
-    }
-  };
 
   useEffect(() => {
     if (currentPlayerCard && currentBotCard && phase === 'showing' && !editMode) {
@@ -707,14 +254,6 @@ export default function BattleScreen() {
       setPhase('waiting');
     }
   }, [phase, lastRoundResult, resultOpacity, editMode]);
-
-  useEffect(() => {
-    if (editMode) {
-      setShowSidebar(true);
-    } else {
-      setShowSidebar(false);
-    }
-  }, [editMode]);
 
   const handleNextRound = useCallback(() => {
     if (Platform.OS !== 'web') {
@@ -776,6 +315,25 @@ export default function BattleScreen() {
     ? lastRoundResult.botCard
     : currentBotCard;
 
+  const updateElement = (id: string, data: any) => {
+    setElements((prev) => ({
+      ...prev,
+      [id]: { ...prev[id as keyof typeof prev], ...data },
+    }));
+  };
+
+  const resetLayout = () => {
+    setElements({
+      playerCard: { x: -150, y: 150, scale: 1, minScale: 0.5, maxScale: 2 },
+      botCard: { x: 150, y: 150, scale: 1, minScale: 0.5, maxScale: 2 },
+      vs: { x: 0, y: 150, scale: 1, minScale: 0.5, maxScale: 2.5 },
+      score: { x: 0, y: -200, scale: 1, minScale: 0.6, maxScale: 2 },
+      round: { x: 0, y: -250, scale: 1, minScale: 0.6, maxScale: 2 },
+      result: { x: 0, y: 250, scale: 1, minScale: 0.7, maxScale: 2.5 },
+      abilities: { x: -300, y: 0, scale: 1, minScale: 0.5, maxScale: 1.8 },
+    });
+  };
+
   if (!displayPlayerCard || !displayBotCard) {
     return (
       <ScreenContainer>
@@ -792,48 +350,30 @@ export default function BattleScreen() {
         <LuxuryBackground />
       </View>
 
-      <PageBorders />
-
-      {editMode && showGrid && <GridOverlay />}
-
-      <EditSidebar
-        visible={showSidebar}
-        onClose={() => setShowSidebar(false)}
-        elements={elements}
-        onElementUpdate={updateElement}
-        showGrid={showGrid}
-        onToggleGrid={() => setShowGrid(!showGrid)}
-        snapToGrid={snapToGrid}
-        onToggleSnap={() => setSnapToGrid(!snapToGrid)}
-        onResetLayout={resetLayout}
-      />
-
       <View style={styles.mainControls}>
         <TouchableOpacity
           style={[styles.editModeButton, editMode && styles.editModeButtonActive]}
           onPress={() => setEditMode(!editMode)}
         >
           <Text style={styles.editModeButtonText}>
-            {editMode ? '✓ حفظ' : '✏️ تعديل'}
+            {editMode ? '✓ حفظ التخطيط' : '✏️ تعديل التخطيط'}
           </Text>
         </TouchableOpacity>
 
         {editMode && (
-          <TouchableOpacity
-            style={styles.sidebarToggleButton}
-            onPress={() => setShowSidebar(!showSidebar)}
-          >
-            <Text style={styles.sidebarToggleButtonText}>
-              {showSidebar ? '◀ إخفاء الأدوات' : '▶ إظهار الأدوات'}
-            </Text>
+          <TouchableOpacity style={styles.resetLayoutButton} onPress={resetLayout}>
+            <Text style={styles.resetLayoutButtonText}>🔄 إعادة ضبط</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {editMode && !showSidebar && (
+      {editMode && (
         <View style={styles.editInstructions}>
           <Text style={styles.editInstructionsText}>
-            💡 اسحب للتحريك • المقابض للتكبير • + و − للتحكم الدقيق
+            💡 اسحب العناصر • استخدم + و − للتكبير/التصغير
+          </Text>
+          <Text style={styles.editInstructionsSubText}>
+            🔒 الحدود محمية - لن يخرج أي عنصر من الشاشة
           </Text>
         </View>
       )}
@@ -849,7 +389,6 @@ export default function BattleScreen() {
               initialScale={elements.playerCard.scale}
               minScale={elements.playerCard.minScale}
               maxScale={elements.playerCard.maxScale}
-              snapToGrid={snapToGrid}
               onUpdate={updateElement}
             >
               <View style={styles.editElement}>
@@ -867,7 +406,6 @@ export default function BattleScreen() {
               initialScale={elements.botCard.scale}
               minScale={elements.botCard.minScale}
               maxScale={elements.botCard.maxScale}
-              snapToGrid={snapToGrid}
               onUpdate={updateElement}
             >
               <View style={styles.editElement}>
@@ -885,7 +423,6 @@ export default function BattleScreen() {
               initialScale={elements.vs.scale}
               minScale={elements.vs.minScale}
               maxScale={elements.vs.maxScale}
-              snapToGrid={snapToGrid}
               onUpdate={updateElement}
             >
               <View style={styles.editElement}>
@@ -901,7 +438,6 @@ export default function BattleScreen() {
               initialScale={elements.score.scale}
               minScale={elements.score.minScale}
               maxScale={elements.score.maxScale}
-              snapToGrid={snapToGrid}
               onUpdate={updateElement}
             >
               <View style={styles.editElement}>
@@ -919,7 +455,6 @@ export default function BattleScreen() {
               initialScale={elements.round.scale}
               minScale={elements.round.minScale}
               maxScale={elements.round.maxScale}
-              snapToGrid={snapToGrid}
               onUpdate={updateElement}
             >
               <View style={styles.editElement}>
@@ -937,7 +472,6 @@ export default function BattleScreen() {
               initialScale={elements.abilities.scale}
               minScale={elements.abilities.minScale}
               maxScale={elements.abilities.maxScale}
-              snapToGrid={snapToGrid}
               onUpdate={updateElement}
             >
               <View style={styles.editElement}>
@@ -961,7 +495,6 @@ export default function BattleScreen() {
               initialScale={elements.result.scale}
               minScale={elements.result.minScale}
               maxScale={elements.result.maxScale}
-              snapToGrid={snapToGrid}
               onUpdate={updateElement}
             >
               <View style={styles.editElement}>
@@ -975,6 +508,7 @@ export default function BattleScreen() {
         ) : (
           <View style={styles.normalPlayContainer}>
             
+            {/* ✅ النظام الجديد - موقع مطلق نسبة للمركز */}
             <View style={[
               styles.absolutePositionFixed,
               {
@@ -1198,7 +732,6 @@ export default function BattleScreen() {
   );
 }
 
-// ✅ STYLES
 const styles = StyleSheet.create({
   backgroundWrapper: {
     position: 'absolute',
@@ -1207,329 +740,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 0,
-  },
-
-  pageBorders: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
-  },
-
-  borderTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: '#d4af37',
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-  },
-
-  borderBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: '#d4af37',
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-  },
-
-  borderLeft: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    width: 3,
-    backgroundColor: '#d4af37',
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-  },
-
-  borderRight: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: 3,
-    backgroundColor: '#d4af37',
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-  },
-
-  corner: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    borderColor: '#d4af37',
-    backgroundColor: 'rgba(212, 175, 55, 0.3)',
-  },
-
-  cornerTopLeft: {
-    top: 0,
-    left: 0,
-    borderTopWidth: 5,
-    borderLeftWidth: 5,
-  },
-
-  cornerTopRight: {
-    top: 0,
-    right: 0,
-    borderTopWidth: 5,
-    borderRightWidth: 5,
-  },
-
-  cornerBottomLeft: {
-    bottom: 0,
-    left: 0,
-    borderBottomWidth: 5,
-    borderLeftWidth: 5,
-  },
-
-  cornerBottomRight: {
-    bottom: 0,
-    right: 0,
-    borderBottomWidth: 5,
-    borderRightWidth: 5,
-  },
-
-  sidebar: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 300,
-    backgroundColor: 'rgba(26, 26, 26, 0.98)',
-    zIndex: 300,
-    borderRightWidth: 3,
-    borderRightColor: '#d4af37',
-    shadowColor: '#000',
-    shadowOffset: { width: 5, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-  },
-
-  sidebarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: '#d4af37',
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-  },
-
-  sidebarTitle: {
-    color: '#d4af37',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-
-  sidebarCloseButton: {
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(248, 113, 113, 0.2)',
-    borderRadius: 15,
-  },
-
-  sidebarCloseButtonText: {
-    color: '#f87171',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-
-  sidebarContent: {
-    flex: 1,
-    padding: 16,
-  },
-
-  sidebarSection: {
-    marginBottom: 20,
-    padding: 12,
-    backgroundColor: 'rgba(212, 175, 55, 0.05)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
-  },
-
-  sidebarSectionTitle: {
-    color: '#d4af37',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-
-  sidebarOption: {
-    padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
-  },
-
-  sidebarOptionActive: {
-    backgroundColor: 'rgba(212, 175, 55, 0.2)',
-    borderColor: '#d4af37',
-  },
-
-  sidebarOptionText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-
-  elementItem: {
-    padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#d4af37',
-  },
-
-  elementItemLabel: {
-    color: '#d4af37',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-
-  elementItemControls: {
-    gap: 4,
-  },
-
-  elementItemValue: {
-    color: '#aaa',
-    fontSize: 11,
-  },
-
-  sidebarActionButton: {
-    padding: 12,
-    backgroundColor: '#d4af37',
-    borderRadius: 8,
-    marginBottom: 8,
-    alignItems: 'center',
-  },
-
-  sidebarActionButtonSecondary: {
-    backgroundColor: 'rgba(212, 175, 55, 0.3)',
-  },
-
-  sidebarActionButtonText: {
-    color: '#1a1a1a',
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-
-  sidebarInfoText: {
-    color: '#888',
-    fontSize: 11,
-    lineHeight: 18,
-  },
-
-  gridContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 2,
-  },
-
-  verticalLine: {
-    position: 'absolute',
-    left: '50%',
-    top: 0,
-    bottom: 0,
-    width: 2,
-    backgroundColor: 'rgba(212, 175, 55, 0.5)',
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-  },
-
-  horizontalLine: {
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: 'rgba(212, 175, 55, 0.5)',
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-  },
-
-  verticalLineThin: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 1,
-    backgroundColor: 'rgba(212, 175, 55, 0.2)',
-  },
-
-  horizontalLineThin: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(212, 175, 55, 0.2)',
-  },
-
-  centerDot: {
-    position: 'absolute',
-    left: '50%',
-    top: '50%',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#d4af37',
-    marginLeft: -6,
-    marginTop: -6,
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    borderWidth: 2,
-    borderColor: '#1a1a1a',
-  },
-
-  quadrantLabel: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    marginLeft: -15,
-    marginTop: -15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(212, 175, 55, 0.2)',
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.4)',
-  },
-
-  quadrantText: {
-    color: '#d4af37',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 
   mainControls: {
@@ -1563,8 +773,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  sidebarToggleButton: {
-    backgroundColor: '#666',
+  resetLayoutButton: {
+    backgroundColor: '#f87171',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 24,
@@ -1575,7 +785,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 
-  sidebarToggleButtonText: {
+  resetLayoutButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
@@ -1597,6 +807,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: 4,
+  },
+
+  editInstructionsSubText: {
+    color: '#1a1a1a',
+    fontSize: 11,
+    textAlign: 'center',
   },
 
   battleContainer: {
@@ -1605,129 +822,76 @@ const styles = StyleSheet.create({
   },
 
   draggableContainer: {
-    position: 'relative',
-  },
-
-  transformHandlesContainer: {
-    position: 'absolute',
-    top: -30,
-    left: -30,
-    right: -30,
-    bottom: -30,
-  },
-
-  resizeHandle: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#2196F3',
-    borderRadius: 2,
-    zIndex: 10,
-  },
-
-  resizeHandleInner: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#2196F3',
-  },
-
-  resizeHandle_topleft: { top: 0, left: 0 },
-  resizeHandle_topright: { top: 0, right: 0 },
-  resizeHandle_bottomleft: { bottom: 50, left: 0 },
-  resizeHandle_bottomright: { bottom: 50, right: 0 },
-  resizeHandle_top: { top: 0, left: '50%', marginLeft: -6 },
-  resizeHandle_bottom: { bottom: 50, left: '50%', marginLeft: -6 },
-  resizeHandle_left: { top: '50%', left: 0, marginTop: -6 },
-  resizeHandle_right: { top: '50%', right: 0, marginTop: -6 },
-
-  centerDotHandle: {
-    position: 'absolute',
-    left: '50%',
-    top: '50%',
-    width: 16,
-    height: 16,
-    marginLeft: -8,
-    marginTop: -8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  centerDotInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#2196F3',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-
-  fixedScaleControls: {
-    position: 'absolute',
-    bottom: -60,
-    left: '50%',
-    transform: [{ translateX: -85 }],
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(33, 33, 33, 0.95)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 10,
-    borderWidth: 2,
-    borderColor: '#2196F3',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-
-  scaleControlButton: {
-    backgroundColor: '#2196F3',
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#2196F3',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-  },
-
-  scaleControlButtonDisabled: {
-    backgroundColor: '#555',
-    opacity: 0.5,
-    shadowOpacity: 0,
-  },
-
-  scaleControlButtonText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
-    lineHeight: 24,
-  },
-
-  scaleControlDisplay: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    minWidth: 60,
-    alignItems: 'center',
-  },
-
-  scaleControlText: {
-    color: '#4ade80',
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    borderColor: '#d4af37',
+    borderStyle: 'dashed',
+    padding: 12,
   },
 
   editElement: {
     alignItems: 'center',
+  },
+
+  controlButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#d4af37',
+  },
+
+  scaleButton: {
+    backgroundColor: '#d4af37',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  scaleButtonDisabled: {
+    backgroundColor: '#666',
+    opacity: 0.5,
+  },
+
+  scaleButtonText: {
+    color: '#1a1a1a',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+
+  scaleIndicator: {
+    color: '#4ade80',
+    fontSize: 14,
+    fontWeight: 'bold',
+    minWidth: 45,
+    textAlign: 'center',
+  },
+
+  dragHandle: {
+    position: 'absolute',
+    top: -12,
+    left: '50%',
+    marginLeft: -18,
+    backgroundColor: '#4ade80',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#1a1a1a',
+  },
+
+  dragHandleText: {
+    color: '#1a1a1a',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 
   elementLabel: {
@@ -1761,7 +925,6 @@ const styles = StyleSheet.create({
 
   abilitiesEditBox: {
     gap: 6,
-    minHeight: 300,
   },
 
   abilityEditItem: {
@@ -1788,6 +951,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // ✅ نظام جديد - موقع مطلق ثابت
   absolutePositionFixed: {
     position: 'absolute',
     alignItems: 'center',
