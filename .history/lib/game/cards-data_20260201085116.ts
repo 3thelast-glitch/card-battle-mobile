@@ -1,13 +1,10 @@
-import { Card, Element, ElementAdvantage, Effect, ELEMENT_ADVANTAGES, ELEMENT_WEAKNESSES, ELEMENT_MULTIPLIER } from './types';
-
-const FINAL_IMAGE_PLACEHOLDER = require('../../assets/images/icon.png');
+import { Card, Element, ElementAdvantage, ELEMENT_ADVANTAGES, ELEMENT_WEAKNESSES, ELEMENT_MULTIPLIER } from './types';
 
 export const ALL_CARDS: Card[] = [
   // البشر
   {
     id: 'human-warrior',
     name: 'Human Warrior',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/human-warrior.png
     nameAr: 'المحارب البشري',
     hp: 100,
     attack: 28,
@@ -23,7 +20,6 @@ export const ALL_CARDS: Card[] = [
   {
     id: 'human-knight',
     name: 'Human Knight',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/human-knight.png
     nameAr: 'الفارس البشري',
     hp: 120,
     attack: 25,
@@ -39,7 +35,6 @@ export const ALL_CARDS: Card[] = [
   {
     id: 'elf-archer',
     name: 'Elf Archer',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/elf-archer.png
     nameAr: 'الرامي الجني',
     hp: 80,
     attack: 32,
@@ -54,7 +49,6 @@ export const ALL_CARDS: Card[] = [
   {
     id: 'elf-mage',
     name: 'Elf Mage',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/elf-mage.png
     nameAr: 'الساحر الجني',
     hp: 70,
     attack: 20,
@@ -70,7 +64,6 @@ export const ALL_CARDS: Card[] = [
   {
     id: 'orc-berserker',
     name: 'Orc Berserker',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/orc-berserker.png
     nameAr: 'البيرسركر الأورك',
     hp: 110,
     attack: 35,
@@ -85,7 +78,6 @@ export const ALL_CARDS: Card[] = [
   {
     id: 'orc-warrior',
     name: 'Orc Warrior',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/orc-warrior.png
     nameAr: 'المحارب الأورك',
     hp: 130,
     attack: 30,
@@ -101,7 +93,6 @@ export const ALL_CARDS: Card[] = [
   {
     id: 'dragon-mage',
     name: 'Dragon Mage',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/dragon-mage.png
     nameAr: 'ساحر التنين',
     hp: 90,
     attack: 38,
@@ -117,7 +108,6 @@ export const ALL_CARDS: Card[] = [
   {
     id: 'dragon-knight',
     name: 'Dragon Knight',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/dragon-knight.png
     nameAr: 'فارس التنين',
     hp: 140,
     attack: 28,
@@ -133,7 +123,6 @@ export const ALL_CARDS: Card[] = [
   {
     id: 'demon-berserker',
     name: 'Demon Berserker',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/demon-berserker.png
     nameAr: 'البيرسركر الشيطاني',
     hp: 85,
     attack: 40,
@@ -148,7 +137,6 @@ export const ALL_CARDS: Card[] = [
   {
     id: 'demon-mage',
     name: 'Demon Mage',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/demon-mage.png
     nameAr: 'الساحر الشيطاني',
     hp: 75,
     attack: 36,
@@ -164,7 +152,6 @@ export const ALL_CARDS: Card[] = [
   {
     id: 'undead-knight',
     name: 'Undead Knight',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/undead-knight.png
     nameAr: 'الفارس الميت',
     hp: 150,
     attack: 22,
@@ -179,7 +166,6 @@ export const ALL_CARDS: Card[] = [
   {
     id: 'undead-paladin',
     name: 'Undead Paladin',
-    finalImage: FINAL_IMAGE_PLACEHOLDER, // TODO: ../../assets/cards/final/undead-paladin.png
     nameAr: 'البالادين الميت',
     hp: 120,
     attack: 25,
@@ -219,46 +205,22 @@ export function getElementAdvantage(attackerElement: Element, defenderElement: E
 }
 
 // دالة لحساب الضرر مع تأثير العناصر
-export function applyActiveEffects(
-  card: Card,
-  effects: Effect[] = [],
-  abilitiesEnabled = true
-): Card {
+export function applyActiveEffects(card: Card, effects: ActiveEffect[] = []): Card {
   let modifiedCard = { ...card };
 
-  if (!abilitiesEnabled || !effects || effects.length === 0) {
+  if (!effects || effects.length === 0) {
     return modifiedCard;
   }
 
-  const orderedEffects = [...effects].sort((a, b) => b.priority - a.priority);
-
-  orderedEffects.forEach(effect => {
-    if (effect.kind === 'statModifier') {
-      const data = effect.data as { stat?: 'attack' | 'defense' | 'hp' | 'all'; amount?: number };
-      const amount = data?.amount ?? 0;
-      const stat = data?.stat ?? 'all';
-      if (stat === 'all') {
-        modifiedCard.attack += amount;
-        modifiedCard.defense += amount;
-        modifiedCard.hp += amount;
-      } else if (stat === 'attack') {
-        modifiedCard.attack += amount;
-      } else if (stat === 'defense') {
-        modifiedCard.defense += amount;
-      } else if (stat === 'hp') {
-        modifiedCard.hp += amount;
-      }
+  effects.forEach(effect => {
+    if (effect.stat === 'attack') {
+      modifiedCard.attack += effect.value;
+    } else if (effect.stat === 'defense') {
+      modifiedCard.defense += effect.value;
+    } else if (effect.stat === 'hp') {
+      modifiedCard.hp += effect.value;
     }
-
-    if (effect.kind === 'halvePoints') {
-      const data = effect.data as { multiplier?: number; stats?: Array<'attack' | 'defense' | 'hp'> };
-      const multiplier = data?.multiplier ?? 1;
-      // تنصيف نقاط الكرت يطبق على attack/defense فقط لهذه الجولة.
-      const stats = data?.stats ?? ['attack', 'defense'];
-      if (stats.includes('attack')) modifiedCard.attack = Math.round(modifiedCard.attack * multiplier);
-      if (stats.includes('defense')) modifiedCard.defense = Math.round(modifiedCard.defense * multiplier);
-      if (stats.includes('hp')) modifiedCard.hp = Math.round(modifiedCard.hp * multiplier);
-    }
+    // يمكن إضافة منطق لـ 'all' و 'ability' لاحقاً
   });
 
   // التأكد من أن القيم لا تقل عن الصفر
@@ -282,9 +244,8 @@ export function calculateDamage(attacker: Card, defender: Card): { damage: numbe
 export function determineRoundWinner(
   playerCard: Card,
   botCard: Card,
-  playerEffects: Effect[] = [], // التأثيرات النشطة على اللاعب
-  botEffects: Effect[] = [], // التأثيرات النشطة على البوت
-  abilitiesEnabled = true
+  playerEffects: ActiveEffect[], // التأثيرات النشطة على اللاعب
+  botEffects: ActiveEffect[] // التأثيرات النشطة على البوت
 ): { 
   winner: 'player' | 'bot' | 'draw'; 
   playerDamage: number; 
@@ -295,8 +256,8 @@ export function determineRoundWinner(
   botElementAdvantage: ElementAdvantage;
 } {
   // تطبيق التأثيرات على البطاقات الحالية
-  const modifiedPlayerCard = applyActiveEffects(playerCard, playerEffects, abilitiesEnabled);
-  const modifiedBotCard = applyActiveEffects(botCard, botEffects, abilitiesEnabled);
+  const modifiedPlayerCard = applyActiveEffects(playerCard, playerEffects);
+  const modifiedBotCard = applyActiveEffects(botCard, botEffects);
 
   // الضرر الذي يسببه اللاعب للبوت
   const playerResult = calculateDamage(modifiedPlayerCard, modifiedBotCard);
@@ -310,13 +271,6 @@ export function determineRoundWinner(
     winner = 'bot';
   } else {
     winner = 'draw';
-  }
-
-  const playerStarAdvantage = playerEffects.some(effect => effect.kind === 'starAdvantage');
-  const botStarAdvantage = botEffects.some(effect => effect.kind === 'starAdvantage');
-  // افتراض: "النجوم" غير ممثلة في المنطق الحالي، فنستخدمها ككسر تعادل فقط.
-  if (winner === 'draw' && playerStarAdvantage !== botStarAdvantage) {
-    winner = playerStarAdvantage ? 'player' : 'bot';
   }
 
   return { 

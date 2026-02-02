@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { ALL_CARDS, getRandomCards, calculateBaseDamage, calculateDamage, getElementAdvantage, determineRoundWinner } from '../cards-data';
 import { Card, ELEMENT_ADVANTAGES, ELEMENT_WEAKNESSES, ELEMENT_MULTIPLIER } from '../types';
 
+const FINAL_IMAGE_PLACEHOLDER = require('../../../assets/images/icon.png');
+
 describe('Cards Data', () => {
   it('should have 12 cards in the database', () => {
     expect(ALL_CARDS.length).toBe(12);
@@ -65,6 +67,7 @@ describe('calculateBaseDamage', () => {
     const attacker: Card = {
       id: 'test-attacker',
       name: 'Test Attacker',
+      finalImage: FINAL_IMAGE_PLACEHOLDER,
       nameAr: 'مهاجم اختبار',
       hp: 100,
       attack: 30,
@@ -80,6 +83,7 @@ describe('calculateBaseDamage', () => {
     const defender: Card = {
       id: 'test-defender',
       name: 'Test Defender',
+      finalImage: FINAL_IMAGE_PLACEHOLDER,
       nameAr: 'مدافع اختبار',
       hp: 100,
       attack: 20,
@@ -101,6 +105,7 @@ describe('calculateBaseDamage', () => {
     const attacker: Card = {
       id: 'weak-attacker',
       name: 'Weak Attacker',
+      finalImage: FINAL_IMAGE_PLACEHOLDER,
       nameAr: 'مهاجم ضعيف',
       hp: 100,
       attack: 10,
@@ -116,6 +121,7 @@ describe('calculateBaseDamage', () => {
     const defender: Card = {
       id: 'strong-defender',
       name: 'Strong Defender',
+      finalImage: FINAL_IMAGE_PLACEHOLDER,
       nameAr: 'مدافع قوي',
       hp: 100,
       attack: 20,
@@ -184,6 +190,7 @@ describe('Element System', () => {
       const fireCard: Card = {
         id: 'fire-card',
         name: 'Fire Card',
+        finalImage: FINAL_IMAGE_PLACEHOLDER,
         nameAr: 'بطاقة نارية',
         hp: 100,
         attack: 20,
@@ -199,6 +206,7 @@ describe('Element System', () => {
       const iceCard: Card = {
         id: 'ice-card',
         name: 'Ice Card',
+        finalImage: FINAL_IMAGE_PLACEHOLDER,
         nameAr: 'بطاقة جليدية',
         hp: 100,
         attack: 20,
@@ -224,6 +232,7 @@ describe('Element System', () => {
       const fireCard: Card = {
         id: 'fire-card',
         name: 'Fire Card',
+        finalImage: FINAL_IMAGE_PLACEHOLDER,
         nameAr: 'بطاقة نارية',
         hp: 100,
         attack: 20,
@@ -239,6 +248,7 @@ describe('Element System', () => {
       const earthCard: Card = {
         id: 'earth-card',
         name: 'Earth Card',
+        finalImage: FINAL_IMAGE_PLACEHOLDER,
         nameAr: 'بطاقة أرضية',
         hp: 100,
         attack: 20,
@@ -264,6 +274,7 @@ describe('Element System', () => {
       const fireCard: Card = {
         id: 'fire-card',
         name: 'Fire Card',
+        finalImage: FINAL_IMAGE_PLACEHOLDER,
         nameAr: 'بطاقة نارية',
         hp: 100,
         attack: 20,
@@ -279,6 +290,7 @@ describe('Element System', () => {
       const waterCard: Card = {
         id: 'water-card',
         name: 'Water Card',
+        finalImage: FINAL_IMAGE_PLACEHOLDER,
         nameAr: 'بطاقة مائية',
         hp: 100,
         attack: 20,
@@ -307,6 +319,7 @@ describe('determineRoundWinner with elements', () => {
     const fireCard: Card = {
       id: 'fire-card',
       name: 'Fire Card',
+      finalImage: FINAL_IMAGE_PLACEHOLDER,
       nameAr: 'بطاقة نارية',
       hp: 100,
       attack: 25,
@@ -322,6 +335,7 @@ describe('determineRoundWinner with elements', () => {
     const iceCard: Card = {
       id: 'ice-card',
       name: 'Ice Card',
+      finalImage: FINAL_IMAGE_PLACEHOLDER,
       nameAr: 'بطاقة جليدية',
       hp: 100,
       attack: 25,
@@ -350,6 +364,7 @@ describe('determineRoundWinner with elements', () => {
     const earthCard: Card = {
       id: 'earth-card',
       name: 'Earth Card',
+      finalImage: FINAL_IMAGE_PLACEHOLDER,
       nameAr: 'بطاقة أرضية',
       hp: 100,
       attack: 25,
@@ -365,6 +380,7 @@ describe('determineRoundWinner with elements', () => {
     const fireCard: Card = {
       id: 'fire-card',
       name: 'Fire Card',
+      finalImage: FINAL_IMAGE_PLACEHOLDER,
       nameAr: 'بطاقة نارية',
       hp: 100,
       attack: 25,

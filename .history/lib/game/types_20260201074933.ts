@@ -1,20 +1,14 @@
 // أنواع البطاقات والإحصائيات
 
 export type Race = 'human' | 'elf' | 'orc' | 'dragon' | 'demon' | 'undead';
-
 export type CardClass = 'warrior' | 'knight' | 'mage' | 'archer' | 'berserker' | 'paladin';
-
 export type Element = 'fire' | 'ice' | 'water' | 'earth' | 'lightning' | 'wind';
-
 export type Tag = 'sword' | 'shield' | 'magic' | 'bow' | 'crown';
-
-import type { ImageSourcePropType } from 'react-native';
 
 export interface Card {
   id: string;
   name: string;
   nameAr: string;
-  finalImage: ImageSourcePropType;
   hp: number;
   attack: number;
   defense: number;
@@ -31,89 +25,62 @@ export type AbilityType =
   | 'LogicalEncounter' // مصادفة منطقية (توقع نتيجة دورين قادمين)
   | 'Recall' // استدعاء (كرت سابق لك بدون خاصية)
   | 'Protection' // حماية (تحمي نفسك من خسارة نقطة صحة)
-  | 'Arise' // أرايز (استدعي كرت من كروت خصمك)
+  | 'Arise' // اراايز (استدعي كرت من كروت خصمك)
   | 'Reinforcement' // التدعيم (في حال الفوز +1 دفاع لكل الكروت لك)
   | 'Wipe' // المسح (امسح اي تأثيرات عليك فاللعبة)
   | 'Purge' // التطهير (نظف كل التأثيرات فاللعبة)
-  | 'HalvePoints' // تنصيف النقاط (خصم نقاط الكرت للنصف)
+  | 'HalvePoints' // خصم نقاط الكرت للنصف
   | 'Seal' // الختم (اختم قدرة لمدة 5 جولات)
-  | 'DoubleOrNothing' // دبل أو نثنق (قبل الراوند)
-  | 'StarSuperiority' // تفوق النجوم (كل كروتك تتفوق بالنجوم على الخصم)
+  | 'DoubleOrNothing' // دبل اور نثنق (قبل الراوند)
+  | 'StarSuperiority' // كل كروتك تتفوق بالنجوم على الخصم
   | 'Reduction' // التقليص (-2 لكل عناصر الخصم)
   | 'Sacrifice' // تضحية (تشيل خاصية خصم في حال الخسارة)
   | 'Popularity' // الشعبية (اغلب الشات يختار رقم راوند تفوز فيه)
-  | 'Eclipse' // الخسوف (هجوم خصمك 0 بدون البفات)
-  | 'CancelAbility' // الغاء خاصية (ألغِ قدرة الخصم)
+  | 'Eclipse' // الخسف (هجوم خصمك 0 بدون البفات)
+  | 'CancelAbility' // الغاء خاصية
   | 'Revive' // إنعاش (كرت سابق لك بنصف طاقاته مع الخاصية)
   | 'Shambles' // شامبلز (بدل الطاقات بدون الخاصيات)
-  | 'ConsecutiveLossBuff' // تعزيز الخسارة (خسارة جولتين +1 هجوم ودفاع)
-  | 'Lifesteal' // سرقة الحياة (مع الفوز ترجع نقطة صحة)
+  | 'ConsecutiveLossBuff' // في حال خسارة جولتين متتاليتين تاخذ +1 هجوم و دفاع
+  | 'Lifesteal' // اللايف ستيل (مع الفوز ترجع نقطة صحة)
   | 'Revenge' // الانتقام (في حال الخسارة +1 هجوم لكل الكروت لك)
   | 'Suicide' // الانتحار (مع الخسارة ينقص الخصم نقطة)
   | 'Disaster' // النكبة (بدل كرت الخصم بكرت سابق له)
   | 'Compensation' // التعويض (في حال الخسارة +1 دفاع لكل الكروت لك)
   | 'Weakening' // الإضعاف (في حال الخسارة -1 هجوم للخصم)
   | 'Misdirection' // التضليل (دبل كل النيرفات على الخصم)
-  | 'StealAbility' // سرقة الخاصية (اسرق قدرة من الخصم)
-  | 'Rescue' // الإنقاذ (تعطي دفاع الكرت الحالي للكرت القادم)
+  | 'StealAbility' // سرقة الخاصية
+  | 'Rescue' // الانقاذ (تعطي دفاع الكرت الحالي للكرت القادم)
   | 'Trap' // الفخ (قبل الراوند)
-  | 'ConvertDebuffsToBuffs' // تحويل السلبيات (حول النيرفات عليك لبفات)
+  | 'ConvertDebuffsToBuffs' // حول النيرفات عليك لبفات
   | 'Sniping' // القنص (اختار راوند معين لقنص الخصم)
   | 'Merge' // الدمج (ادمج كرتك مع كرتك السابق بدون خاصية)
   | 'DoubleNextCards' // المضاعفة (ضاعف نقاط كرتين من الدور القادم)
   | 'Deprivation' // السلب (اسلب الخصم من البفات)
   | 'Greed' // الجشع (في حال الفوز +1 هجوم لكل الكروت لك)
-  | 'Dilemma' // الوهقة (بدل كرت الخصم بكرت سابق لك)
+  | 'Dilemma' // الوهقه (بدل كرت الخصم بكرت سابق لك)
   | 'Subhan' // الصبحان (توقع هجوم الكرت القادم للخصم)
-  | 'Propaganda' // بروباغاندا (اختار فئة واحدة للخصم -2 هجوم ودفاع)
-  | 'DoubleYourBuffs' // مضاعفة البفات (دبل البفات لك)
-  | 'Avatar' // أفاتار (+2 لكل العناصر لك)
+  | 'Propaganda' // بروباغاندا (اختار فئة واحدة للخصم -2 هجوم و دفاع)
+  | 'DoubleYourBuffs' // دبل البفات لك
+  | 'Avatar' // افاتار (+2 لكل العناصر لك)
   | 'Penetration' // الاختراق (نقاط دفاع الخصم 0)
   | 'Pool' // المسبح (اغراق كرت الخصم وبقاء تأثير كرتك)
   | 'Conversion' // التحويل (حول بفات الخصم لنيرفات)
-  | 'Shield' // الدرع (حماية من الخسارة والخاصية)
-  | 'SwapClass' // تبديل الفئة (بدل فئة واحدة من عندك مع فئة من خصمك)
-  | 'TakeIt' // خذها وأنا بو مبارك (اعطي النيرفات للخصم)
-  | 'Skip' // تخطي (يسكب الدور بدون اي تأثير عاللعب)
-  | 'AddElement' // إضافة عنصر (اضف عنصر لأي كرت)
+  | 'Shield' // الدرع (حماية من الخسارة و الخاصية)
+  | 'SwapClass' // بدل فئة واحده من عندك مع فئة واحده من خصمك
+  | 'TakeIt' // خذها وانا بو مبارك (اعطي النيرفات للخصم)
+  | 'Skip' // سكب (يسكب الدور بدون اي تأثير عاللعب)
+  | 'AddElement' // اضافة عنصر لأي كرت
   | 'Explosion' // الانفجار (في حال الخسارة -1 دفاع لكل كروت الخصم)
-  | 'DoublePoints' // مضاعفة النقاط (دبل النقاط قبل الراوند)
-  | 'ElementalMastery'; // إتقان العناصر (تفوق عنصري كامل)
+  | 'DoublePoints' // دبل النقاط (قبل الراوند)
+  | 'ElementalMastery'; // إتقان العناصر (قدرة إضافية لم تذكر في القائمة، يمكن استخدامها كاحتياطي)
 
-export type Side = 'player' | 'bot';
-
-export type EffectKind =
-  | 'prediction'
-  | 'protection'
-  | 'fortify'
-  | 'statModifier'
-  | 'halvePoints'
-  | 'silenceAbilities'
-  | 'doubleOrNothing'
-  | 'forcedOutcome'
-  | 'starAdvantage'
-  | 'sacrifice';
-
-export interface Effect {
-  id: string;
-  kind: EffectKind;
-  sourceSide: Side;
-  targetSide: Side | 'all';
-  createdAtRound: number;
-  expiresAtRound?: number;
-  charges?: number;
-  priority: number;
-  data?: Record<string, unknown>;
-}
-
-// Legacy: kept for older ability executors that haven't been migrated yet.
 export interface ActiveEffect {
   type: 'buff' | 'debuff' | 'seal';
   target: 'player' | 'bot' | 'all';
   stat: 'attack' | 'defense' | 'hp' | 'all' | 'ability';
-  value: number;
-  roundsLeft: number;
-  sourceAbility: AbilityType;
+  value: number; // قيمة التأثير (للهجوم والدفاع)
+  roundsLeft: number; // عدد الجولات المتبقية
+  sourceAbility: AbilityType; // القدرة التي سببت التأثير
 }
 
 export interface GameState {
@@ -125,8 +92,7 @@ export interface GameState {
   botScore: number;
   roundResults: RoundResult[];
   difficulty: 'easy' | 'medium' | 'hard';
-  abilitiesEnabled: boolean;
-  activeEffects: Effect[]; // قائمة التأثيرات النشطة
+  activeEffects: ActiveEffect[]; // قائمة التأثيرات النشطة
   playerAbilities: AbilityState[]; // القدرات الممنوحة للاعب
   botAbilities: AbilityState[]; // القدرات الممنوحة للبوت
   usedAbilities: AbilityType[]; // القدرات التي تم استخدامها بالفعل
@@ -194,27 +160,27 @@ export type ElementAdvantage = 'strong' | 'weak' | 'neutral';
 // مضاعف الضرر عند التفوق العنصري
 export const ELEMENT_MULTIPLIER = {
   strong: 1.25, // +25% ضرر
-  weak: 0.75, // -25% ضرر
+  weak: 0.75,   // -25% ضرر
   neutral: 1.0, // بدون تغيير
 };
 
 // خريطة التفوق العنصري
 // fire > ice > earth > fire
 export const ELEMENT_ADVANTAGES: Record<Element, Element[]> = {
-  fire: ['ice'], // النار قوية ضد الجليد
-  ice: ['earth'], // الجليد قوي ضد الأرض
-  earth: ['fire'], // الأرض قوية ضد النار
-  water: [], // الماء محايد
-  lightning: [], // البرق محايد
-  wind: [], // الريح محايدة
+  fire: ['ice'],      // النار قوية ضد الجليد
+  ice: ['earth'],     // الجليد قوي ضد الأرض
+  earth: ['fire'],    // الأرض قوية ضد النار
+  water: [],          // الماء محايد
+  lightning: [],      // البرق محايد
+  wind: [],           // الريح محايدة
 };
 
 // خريطة الضعف العنصري
 export const ELEMENT_WEAKNESSES: Record<Element, Element[]> = {
-  fire: ['earth'], // النار ضعيفة ضد الأرض
-  ice: ['fire'], // الجليد ضعيف ضد النار
-  earth: ['ice'], // الأرض ضعيفة ضد الجليد
-  water: [], // الماء محايد
-  lightning: [], // البرق محايد
-  wind: [], // الريح محايدة
+  fire: ['earth'],    // النار ضعيفة ضد الأرض
+  ice: ['fire'],      // الجليد ضعيف ضد النار
+  earth: ['ice'],     // الأرض ضعيفة ضد الجليد
+  water: [],          // الماء محايد
+  lightning: [],      // البرق محايد
+  wind: [],           // الريح محايدة
 };

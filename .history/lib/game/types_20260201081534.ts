@@ -8,13 +8,10 @@ export type Element = 'fire' | 'ice' | 'water' | 'earth' | 'lightning' | 'wind';
 
 export type Tag = 'sword' | 'shield' | 'magic' | 'bow' | 'crown';
 
-import type { ImageSourcePropType } from 'react-native';
-
 export interface Card {
   id: string;
   name: string;
   nameAr: string;
-  finalImage: ImageSourcePropType;
   hp: number;
   attack: number;
   defense: number;
@@ -80,40 +77,13 @@ export type AbilityType =
   | 'DoublePoints' // مضاعفة النقاط (دبل النقاط قبل الراوند)
   | 'ElementalMastery'; // إتقان العناصر (تفوق عنصري كامل)
 
-export type Side = 'player' | 'bot';
-
-export type EffectKind =
-  | 'prediction'
-  | 'protection'
-  | 'fortify'
-  | 'statModifier'
-  | 'halvePoints'
-  | 'silenceAbilities'
-  | 'doubleOrNothing'
-  | 'forcedOutcome'
-  | 'starAdvantage'
-  | 'sacrifice';
-
-export interface Effect {
-  id: string;
-  kind: EffectKind;
-  sourceSide: Side;
-  targetSide: Side | 'all';
-  createdAtRound: number;
-  expiresAtRound?: number;
-  charges?: number;
-  priority: number;
-  data?: Record<string, unknown>;
-}
-
-// Legacy: kept for older ability executors that haven't been migrated yet.
 export interface ActiveEffect {
   type: 'buff' | 'debuff' | 'seal';
   target: 'player' | 'bot' | 'all';
   stat: 'attack' | 'defense' | 'hp' | 'all' | 'ability';
-  value: number;
-  roundsLeft: number;
-  sourceAbility: AbilityType;
+  value: number; // قيمة التأثير (للهجوم والدفاع)
+  roundsLeft: number; // عدد الجولات المتبقية
+  sourceAbility: AbilityType; // القدرة التي سببت التأثير
 }
 
 export interface GameState {
@@ -125,8 +95,7 @@ export interface GameState {
   botScore: number;
   roundResults: RoundResult[];
   difficulty: 'easy' | 'medium' | 'hard';
-  abilitiesEnabled: boolean;
-  activeEffects: Effect[]; // قائمة التأثيرات النشطة
+  activeEffects: ActiveEffect[]; // قائمة التأثيرات النشطة
   playerAbilities: AbilityState[]; // القدرات الممنوحة للاعب
   botAbilities: AbilityState[]; // القدرات الممنوحة للبوت
   usedAbilities: AbilityType[]; // القدرات التي تم استخدامها بالفعل

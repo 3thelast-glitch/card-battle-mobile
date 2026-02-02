@@ -7,8 +7,6 @@ import { CardItem } from '@/components/game/card-item';
 import { useGame } from '@/lib/game/game-context';
 import { ALL_CARDS } from '@/lib/game/cards-data';
 import { Card } from '@/lib/game/types';
-import { ALL_ABILITIES } from '@/lib/game/abilities';
-import { getAbilityNameAr } from '@/lib/game/ability-names';
 
 interface CardRound {
   card: Card;
@@ -63,6 +61,21 @@ export default function CardSelectionScreen() {
     }
   };
 
+  const handleShuffleCards = () => {
+    const rounds = Array.from({ length: totalRounds }, (_, i) => i + 1);
+    for (let i = rounds.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [rounds[i], rounds[j]] = [rounds[j], rounds[i]];
+    }
+
+    setCardRounds((prev) =>
+      prev.map((item, index) => ({
+        ...item,
+        round: rounds[index] ?? null,
+      }))
+    );
+  };
+
   const renderCardItem = ({ item, index }: { item: CardRound; index: number }) => (
     <TouchableOpacity
       style={styles.cardItemContainer}
@@ -98,22 +111,6 @@ export default function CardSelectionScreen() {
           <Text style={styles.subtitle}>اختر جولة لكل بطاقة</Text>
         </View>
 
-        {/* Available Abilities */}
-        {state.playerAbilities && state.playerAbilities.length > 0 && (
-          <View style={styles.abilitiesContainer}>
-            <Text style={styles.abilitiesTitle}>قدراتك الخاصة:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.abilitiesList}>
-              {state.playerAbilities.map((ability, index) => (
-                <View key={index} style={styles.abilityBadge}>
-                  <Text style={styles.abilityBadgeText}>
-                    {getAbilityNameAr(ability.type)}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
         {/* Cards List */}
         <FlatList
           data={cardRounds}
@@ -133,6 +130,14 @@ export default function CardSelectionScreen() {
             activeOpacity={0.8}
           >
             <Text style={styles.backButtonText}>← رجوع</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleShuffleCards}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.backButtonText}>🔀 ترتيب عشوائي</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

@@ -302,7 +302,7 @@ export const abilityExecutors: Record<AbilityType, AbilityExecutor> = {
   Misdirection: (state, isPlayer) => {
     // التضليل (دبل كل النيرفات على الخصم)
     const opponentTarget = isPlayer ? 'bot' : 'player';
-    const debuffs = (state.activeEffects as ActiveEffect[]).filter(
+    const debuffs = state.activeEffects.filter(
       e => e.target === opponentTarget && e.type === 'debuff'
     );
     

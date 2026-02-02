@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Modal, ScrollView, PanResponder, Animated as RNAnimated, Dimensions, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Modal, ScrollView, PanResponder, Animated as RNAnimated, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, {
@@ -16,14 +16,6 @@ import { LuxuryBackground } from '@/components/game/luxury-background';
 import { useGame } from '@/lib/game/game-context';
 import { ELEMENT_EMOJI, ElementAdvantage } from '@/lib/game/types';
 import { getAbilityNameAr } from '@/lib/game/ability-names';
-import { PredictionModal } from '@/app/components/modals/PredictionModal';
-import { PopularityModal } from '@/app/components/modals/PopularityModal';
-import {
-  buildPredictionSummary,
-  getRemainingRounds,
-  getUpcomingPredictionRounds,
-  isPredictionComplete,
-} from '@/lib/game/ui-helpers';
 
 type BattlePhase = 'showing' | 'fighting' | 'result' | 'waiting';
 
@@ -585,12 +577,6 @@ export default function BattleScreen() {
   const [showPlayerEffect, setShowPlayerEffect] = useState(false);
   const [showBotEffect, setShowBotEffect] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [showPredictionModal, setShowPredictionModal] = useState(false);
-  const [predictionSelections, setPredictionSelections] = useState<Record<number, 'win' | 'loss'>>({});
-  const [predictionAbilityType, setPredictionAbilityType] = useState<'LogicalEncounter' | 'Eclipse' | 'Trap' | 'Pool'>('LogicalEncounter');
-  const [popularityAbilityType, setPopularityAbilityType] = useState<'Popularity' | 'Rescue' | 'Penetration'>('Popularity');
-  const [showPopularityModal, setShowPopularityModal] = useState(false);
-  const [selectedPopularityRound, setSelectedPopularityRound] = useState<number | null>(null);
 
   const [editMode, setEditMode] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
@@ -742,53 +728,6 @@ export default function BattleScreen() {
     }
   }, [isGameOver, router]);
 
-  const handleConfirmPrediction = useCallback(() => {
-    useAbility(predictionAbilityType, { predictions: predictionSelections });
-    setShowPredictionModal(false);
-    setPredictionSelections({});
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [predictionAbilityType, predictionSelections, useAbility]);
-
-  const handleConfirmPopularity = useCallback(() => {
-    if (selectedPopularityRound === null) {
-      return;
-    }
-    useAbility(popularityAbilityType, { round: selectedPopularityRound });
-    setShowPopularityModal(false);
-    setSelectedPopularityRound(null);
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [popularityAbilityType, selectedPopularityRound, useAbility]);
-
-  const handleSelectPrediction = useCallback((round: number, outcome: 'win' | 'loss') => {
-    setPredictionSelections((prev) => ({ ...prev, [round]: outcome }));
-  }, []);
-
-  const handleClosePrediction = useCallback(() => {
-    setShowPredictionModal(false);
-  }, []);
-
-  const handleCancelPrediction = useCallback(() => {
-    setShowPredictionModal(false);
-    setPredictionSelections({});
-  }, []);
-
-  const handleSelectPopularity = useCallback((round: number) => {
-    setSelectedPopularityRound(round);
-  }, []);
-
-  const handleClosePopularity = useCallback(() => {
-    setShowPopularityModal(false);
-  }, []);
-
-  const handleCancelPopularity = useCallback(() => {
-    setShowPopularityModal(false);
-    setSelectedPopularityRound(null);
-  }, []);
-
   const playerCardAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: playerCardScale.value }],
   }));
@@ -828,26 +767,6 @@ export default function BattleScreen() {
         return '#fbbf24';
     }
   };
-
-  const roundNumber = state.currentRound + 1;
-  const upcomingRounds = useMemo(
-    () => getUpcomingPredictionRounds(roundNumber, state.totalRounds),
-    [roundNumber, state.totalRounds]
-  );
-  const remainingRounds = useMemo(
-    () => getRemainingRounds(roundNumber, state.totalRounds),
-    [roundNumber, state.totalRounds]
-  );
-  const predictionComplete = useMemo(
-    () => isPredictionComplete(upcomingRounds, predictionSelections),
-    [upcomingRounds, predictionSelections]
-  );
-  const isPopularityReady = selectedPopularityRound !== null;
-
-  const predictionSummary = useMemo(
-    () => buildPredictionSummary(state.activeEffects, 'player'),
-    [state.activeEffects]
-  );
 
   const displayPlayerCard = showResult && lastRoundResult
     ? lastRoundResult.playerCard
@@ -1147,96 +1066,47 @@ export default function BattleScreen() {
                 transform: [{ scale: elements.round.scale }],
               }
             ]}>
-              {predictionSummary ? (
-                <Text style={styles.predictionSummary}>{predictionSummary}</Text>
-              ) : null}
               <Text style={styles.roundText}>
                 الجولة {showResult ? lastRoundResult?.round : state.currentRound + 1}/{state.totalRounds}
               </Text>
             </View>
 
-            {state.abilitiesEnabled && (
-              <View style={[
-                styles.absolutePositionFixed,
-                {
-                  left: CENTER_X + elements.abilities.x,
-                  top: CENTER_Y + elements.abilities.y,
-                  transform: [{ scale: elements.abilities.scale }],
-                }
-              ]}>
-                <View style={styles.abilitiesSidebar}>
-                  <Text style={styles.abilitiesTitle}>قدرات اللعب</Text>
-                  {state.playerAbilities.map((ability, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.abilityButtonVertical,
-                        ability.used && styles.abilityButtonDisabled
-                      ]}
-                      onPress={() => {
-                        if (ability.used) {
-                          return;
-                        }
-
-                        const isSealed = state.activeEffects.some(
-                          (effect) =>
-                            effect.kind === 'silenceAbilities' &&
-                            (effect.targetSide === 'player' || effect.targetSide === 'all') &&
-                            effect.createdAtRound <= roundNumber &&
-                            (effect.expiresAtRound === undefined || roundNumber <= effect.expiresAtRound)
-                        );
-
-                        if (isSealed) {
-                          Alert.alert('القدرات مختومة', 'لا يمكنك تفعيل القدرات خلال مدة الختم.');
-                          return;
-                        }
-
-                        if (
-                          ability.type === 'LogicalEncounter' ||
-                          ability.type === 'Eclipse' ||
-                          ability.type === 'Trap' ||
-                          ability.type === 'Pool'
-                        ) {
-                          if (upcomingRounds.length === 0) {
-                            return;
-                          }
-                          setPredictionSelections({});
-                          setPredictionAbilityType(ability.type);
-                          setShowPredictionModal(true);
-                          return;
-                        }
-
-                        if (
-                          ability.type === 'Popularity' ||
-                          ability.type === 'Rescue' ||
-                          ability.type === 'Penetration'
-                        ) {
-                          if (remainingRounds.length === 0) {
-                            return;
-                          }
-                          setSelectedPopularityRound(null);
-                          setPopularityAbilityType(ability.type);
-                          setShowPopularityModal(true);
-                          return;
-                        }
-
+            <View style={[
+              styles.absolutePositionFixed,
+              {
+                left: CENTER_X + elements.abilities.x,
+                top: CENTER_Y + elements.abilities.y,
+                transform: [{ scale: elements.abilities.scale }],
+              }
+            ]}>
+              <View style={styles.abilitiesSidebar}>
+                <Text style={styles.abilitiesTitle}>قدرات اللعب</Text>
+                {state.playerAbilities.map((ability, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.abilityButtonVertical,
+                      ability.used && styles.abilityButtonDisabled
+                    ]}
+                    onPress={() => {
+                      if (!ability.used) {
                         useAbility(ability.type);
                         if (Platform.OS !== 'web') {
                           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         }
-                      }}
-                      disabled={ability.used}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.abilityButtonTextVertical}>
-                        {ability.used ? '✗ ' : '✓ '}
-                        {getAbilityNameAr(ability.type)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                      }
+                    }}
+                    disabled={ability.used}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.abilityButtonTextVertical}>
+                      {ability.used ? '✗ ' : '✓ '}
+                      {getAbilityNameAr(ability.type)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            )}
+            </View>
 
             {showResult && (
               <Animated.View style={[
@@ -1280,28 +1150,6 @@ export default function BattleScreen() {
           </View>
         )}
       </View>
-
-      <PredictionModal
-        visible={showPredictionModal}
-        upcomingRounds={upcomingRounds}
-        selections={predictionSelections}
-        onSelect={handleSelectPrediction}
-        onCancel={handleCancelPrediction}
-        onRequestClose={handleClosePrediction}
-        onConfirm={handleConfirmPrediction}
-        isConfirmDisabled={!predictionComplete}
-      />
-
-      <PopularityModal
-        visible={showPopularityModal}
-        remainingRounds={remainingRounds}
-        selectedRound={selectedPopularityRound}
-        onSelect={handleSelectPopularity}
-        onCancel={handleCancelPopularity}
-        onRequestClose={handleClosePopularity}
-        onConfirm={handleConfirmPopularity}
-        isConfirmDisabled={!isPopularityReady}
-      />
 
       <Modal
         visible={showHistoryModal}
@@ -2206,11 +2054,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginTop: 8,
-  },
-  predictionSummary: {
-    fontSize: 12,
-    color: '#fbbf24',
-    textAlign: 'center',
-    marginBottom: 4,
   },
 });

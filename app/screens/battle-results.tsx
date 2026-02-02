@@ -8,7 +8,7 @@ import { updateStatsAfterMatch } from '@/lib/stats/storage';
 
 export default function BattleResultsScreen() {
   const router = useRouter();
-  const { state } = useGame();
+  const { state, resetGame } = useGame();
 
   const playerWins = state.playerScore;
   const botWins = state.botScore;
@@ -121,7 +121,10 @@ export default function BattleResultsScreen() {
 
             <TouchableOpacity
               style={styles.playAgainButton}
-              onPress={() => router.push('/screens/card-selection' as any)}
+              onPress={() => {
+                resetGame();
+                router.push('/screens/rounds-config' as any);
+              }}
               activeOpacity={0.8}
             >
               <Text style={styles.playAgainButtonText}>🎮 لعب مرة أخرى</Text>

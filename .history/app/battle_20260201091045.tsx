@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Modal, ScrollView, PanResponder, Animated as RNAnimated, Dimensions, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Modal, ScrollView, PanResponder, Animated as RNAnimated, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, {
@@ -9,6 +9,7 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { ScreenContainer } from '@/components/screen-container';
 import { CardItem } from '@/components/game/card-item';
 import { ElementEffect } from '@/components/game/element-effect';
@@ -16,14 +17,6 @@ import { LuxuryBackground } from '@/components/game/luxury-background';
 import { useGame } from '@/lib/game/game-context';
 import { ELEMENT_EMOJI, ElementAdvantage } from '@/lib/game/types';
 import { getAbilityNameAr } from '@/lib/game/ability-names';
-import { PredictionModal } from '@/app/components/modals/PredictionModal';
-import { PopularityModal } from '@/app/components/modals/PopularityModal';
-import {
-  buildPredictionSummary,
-  getRemainingRounds,
-  getUpcomingPredictionRounds,
-  isPredictionComplete,
-} from '@/lib/game/ui-helpers';
 
 type BattlePhase = 'showing' | 'fighting' | 'result' | 'waiting';
 
@@ -61,7 +54,6 @@ const PageBorders = () => {
       <View style={styles.borderBottom} />
       <View style={styles.borderLeft} />
       <View style={styles.borderRight} />
-      
       <View style={[styles.corner, styles.cornerTopLeft]} />
       <View style={[styles.corner, styles.cornerTopRight]} />
       <View style={[styles.corner, styles.cornerBottomLeft]} />
@@ -81,34 +73,33 @@ const GridOverlay = () => {
       <View style={[styles.horizontalLineThin, { top: '25%' }]} />
       <View style={[styles.horizontalLineThin, { top: '75%' }]} />
       <View style={styles.centerDot} />
-      
       <View style={[styles.quadrantLabel, { left: '25%', top: '25%' }]}>
-        <Text style={styles.quadrantText}>↖</Text>
+        <Text style={styles.quadrantText}>1</Text>
       </View>
       <View style={[styles.quadrantLabel, { left: '75%', top: '25%' }]}>
-        <Text style={styles.quadrantText}>↗</Text>
+        <Text style={styles.quadrantText}>2</Text>
       </View>
       <View style={[styles.quadrantLabel, { left: '25%', top: '75%' }]}>
-        <Text style={styles.quadrantText}>↙</Text>
+        <Text style={styles.quadrantText}>3</Text>
       </View>
       <View style={[styles.quadrantLabel, { left: '75%', top: '75%' }]}>
-        <Text style={styles.quadrantText}>↘</Text>
+        <Text style={styles.quadrantText}>4</Text>
       </View>
     </View>
   );
 };
 
 // ✅ Sidebar جانبي
-const EditSidebar = ({ 
-  visible, 
-  onClose, 
-  elements, 
+const EditSidebar = ({
+  visible,
+  onClose,
+  elements,
   onElementUpdate,
   showGrid,
   onToggleGrid,
   snapToGrid,
   onToggleSnap,
-  onResetLayout 
+  onResetLayout
 }: any) => {
   const slideAnim = useRef(new RNAnimated.Value(-300)).current;
 
@@ -121,43 +112,34 @@ const EditSidebar = ({
   }, [visible]);
 
   return (
-    <RNAnimated.View style={[
-      styles.sidebar,
-      { transform: [{ translateX: slideAnim }] }
-    ]}>
+    <RNAnimated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
       <View style={styles.sidebarHeader}>
         <Text style={styles.sidebarTitle}>🎨 أدوات التحرير</Text>
         <TouchableOpacity onPress={onClose} style={styles.sidebarCloseButton}>
-          <Text style={styles.sidebarCloseButtonText}>✕</Text>
+          <Text style={styles.sidebarCloseButtonText}>×</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.sidebarContent}>
         <View style={styles.sidebarSection}>
           <Text style={styles.sidebarSectionTitle}>⚙️ إعدادات الشبكة</Text>
-          
           <TouchableOpacity
             style={[styles.sidebarOption, showGrid && styles.sidebarOptionActive]}
             onPress={onToggleGrid}
           >
-            <Text style={styles.sidebarOptionText}>
-              {showGrid ? '✓' : '○'} إظهار الشبكة
-            </Text>
+            <Text style={styles.sidebarOptionText}>{showGrid ? '✓' : '○'} إظهار الشبكة</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.sidebarOption, snapToGrid && styles.sidebarOptionActive]}
             onPress={onToggleSnap}
           >
-            <Text style={styles.sidebarOptionText}>
-              {snapToGrid ? '✓' : '○'} التقاط تلقائي
-            </Text>
+            <Text style={styles.sidebarOptionText}>{snapToGrid ? '✓' : '○'} التقاط تلقائي</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.sidebarSection}>
           <Text style={styles.sidebarSectionTitle}>📦 العناصر</Text>
-          
           {Object.entries(elements).map(([key, value]: [string, any]) => (
             <View key={key} style={styles.elementItem}>
               <Text style={styles.elementItemLabel}>
@@ -170,12 +152,8 @@ const EditSidebar = ({
                  key === 'abilities' ? '🎮 القدرات' : key}
               </Text>
               <View style={styles.elementItemControls}>
-                <Text style={styles.elementItemValue}>
-                  الحجم: {Math.round(value.scale * 100)}%
-                </Text>
-                <Text style={styles.elementItemValue}>
-                  X: {value.x.toFixed(0)} Y: {value.y.toFixed(0)}
-                </Text>
+                <Text style={styles.elementItemValue}>الحجم: {Math.round(value.scale * 100)}%</Text>
+                <Text style={styles.elementItemValue}>X: {value.x.toFixed(0)} Y: {value.y.toFixed(0)}</Text>
               </View>
             </View>
           ))}
@@ -184,10 +162,7 @@ const EditSidebar = ({
         <View style={styles.sidebarSection}>
           <Text style={styles.sidebarSectionTitle}>⚡ إجراءات سريعة</Text>
           
-          <TouchableOpacity
-            style={styles.sidebarActionButton}
-            onPress={onResetLayout}
-          >
+          <TouchableOpacity style={styles.sidebarActionButton} onPress={onResetLayout}>
             <Text style={styles.sidebarActionButtonText}>🔄 إعادة ضبط الكل</Text>
           </TouchableOpacity>
 
@@ -262,8 +237,7 @@ const EditSidebar = ({
           <Text style={styles.sidebarInfoText}>
             💡 اسحب العناصر بحرية{'\n'}
             📐 استخدم الشبكة للتوزيع المتوازن{'\n'}
-            🎯 احفظ التخطيط عند الانتهاء{'\n'}
-            💾 يُحفظ تلقائياً عند التعديل
+            🎯 احفظ التخطيط عند الانتهاء
           </Text>
         </View>
       </ScrollView>
@@ -272,11 +246,11 @@ const EditSidebar = ({
 };
 
 // ✅ مقبض تكبير واحد
-const ResizeHandle = ({ 
-  position, 
-  onResizeStart, 
-  onResizeMove, 
-  onResizeEnd 
+const ResizeHandle = ({
+  position,
+  onResizeStart,
+  onResizeMove,
+  onResizeEnd
 }: any) => {
   const initialScale = useRef(1);
 
@@ -284,17 +258,14 @@ const ResizeHandle = ({
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      
       onPanResponderGrant: (evt) => {
         evt.stopPropagation();
         initialScale.current = onResizeStart();
       },
-      
       onPanResponderMove: (evt, gestureState) => {
         evt.stopPropagation();
-        
         let scaleDelta = 0;
-        
+
         if (position.includes('corner')) {
           const distance = Math.sqrt(
             gestureState.dx ** 2 + gestureState.dy ** 2
@@ -306,10 +277,9 @@ const ResizeHandle = ({
         } else {
           scaleDelta = gestureState.dx / 200;
         }
-        
+
         onResizeMove(position, initialScale.current + scaleDelta);
       },
-      
       onPanResponderRelease: () => {
         onResizeEnd();
       },
@@ -321,7 +291,7 @@ const ResizeHandle = ({
       {...panResponder.panHandlers}
       style={[
         styles.resizeHandle,
-        styles[`resizeHandle_${position.replace('-', '')}`],
+        styles[`resizeHandle_${position.replace('-', '')}` as keyof typeof styles],
       ]}
     >
       <View style={styles.resizeHandleInner} />
@@ -330,14 +300,14 @@ const ResizeHandle = ({
 };
 
 // ✅ مقابض التحويل
-const TransformHandles = ({ 
-  scale, 
-  onScaleChange, 
+const TransformHandles = ({
+  scale,
+  onScaleChange,
   onResizeStart,
   onResizeMove,
   onResizeEnd,
-  minScale, 
-  maxScale 
+  minScale,
+  maxScale
 }: any) => {
   const positions = [
     'top-left',
@@ -361,7 +331,6 @@ const TransformHandles = ({
           onResizeEnd={onResizeEnd}
         />
       ))}
-      
       <View style={styles.centerDotHandle} pointerEvents="none">
         <View style={styles.centerDotInner} />
       </View>
@@ -370,23 +339,22 @@ const TransformHandles = ({
 };
 
 // ✅ Component قابل للسحب والتكبير مع زر ثابت الحجم
-const DraggableResizable = ({ 
-  children, 
-  id, 
-  initialX = 0, 
-  initialY = 0, 
-  initialScale = 1, 
-  onUpdate, 
-  minScale = 0.5, 
-  maxScale = 2.5, 
-  snapToGrid = false 
+const DraggableResizable = ({
+  children,
+  id,
+  initialX = 0,
+  initialY = 0,
+  initialScale = 1,
+  onUpdate,
+  minScale = 0.5,
+  maxScale = 2.5,
+  snapToGrid = false
 }: any) => {
   const [scale, setScale] = useState(initialScale);
   const [isResizing, setIsResizing] = useState(false);
-  
   const position = useRef({ x: CENTER_X + initialX, y: CENTER_Y + initialY });
   const pan = useRef(new RNAnimated.ValueXY(position.current)).current;
-  
+
   useEffect(() => {
     const newPos = { x: CENTER_X + initialX, y: CENTER_Y + initialY };
     position.current = newPos;
@@ -441,7 +409,6 @@ const DraggableResizable = ({
     PanResponder.create({
       onStartShouldSetPanResponder: () => !isResizing,
       onMoveShouldSetPanResponder: () => !isResizing,
-      
       onPanResponderGrant: () => {
         pan.setOffset({
           x: position.current.x,
@@ -449,15 +416,13 @@ const DraggableResizable = ({
         });
         pan.setValue({ x: 0, y: 0 });
       },
-      
       onPanResponderMove: RNAnimated.event(
         [null, { dx: pan.x, dy: pan.y }],
         { useNativeDriver: false }
       ),
-      
       onPanResponderRelease: (evt, gestureState) => {
         pan.flattenOffset();
-        
+
         let finalX = position.current.x + gestureState.dx;
         let finalY = position.current.y + gestureState.dy;
 
@@ -472,7 +437,7 @@ const DraggableResizable = ({
         }
 
         position.current = { x: finalX, y: finalY };
-        
+
         RNAnimated.spring(pan, {
           toValue: { x: finalX, y: finalY },
           useNativeDriver: false,
@@ -493,10 +458,13 @@ const DraggableResizable = ({
 
   return (
     <RNAnimated.View
-      style={[{ position: 'absolute', left: 0, top: 0 }]}
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+      }}
       {...panResponder.panHandlers}
     >
-      {/* ✅ المحتوى المُكبَّر */}
       <RNAnimated.View
         style={{
           transform: [
@@ -510,7 +478,7 @@ const DraggableResizable = ({
       >
         <View style={styles.draggableContainer}>
           {children}
-          
+
           <TransformHandles
             scale={scale}
             onScaleChange={handleScaleChange}
@@ -522,8 +490,7 @@ const DraggableResizable = ({
           />
         </View>
       </RNAnimated.View>
-      
-      {/* ✅ الزر الثابت خارج Scale */}
+
       <RNAnimated.View
         style={{
           position: 'absolute',
@@ -547,11 +514,11 @@ const DraggableResizable = ({
           >
             <Text style={styles.scaleControlButtonText}>−</Text>
           </TouchableOpacity>
-          
+
           <View style={styles.scaleControlDisplay}>
             <Text style={styles.scaleControlText}>{Math.round(scale * 100)}%</Text>
           </View>
-          
+
           <TouchableOpacity
             style={[styles.scaleControlButton, scale >= maxScale && styles.scaleControlButtonDisabled]}
             onPress={(e) => {
@@ -567,7 +534,8 @@ const DraggableResizable = ({
     </RNAnimated.View>
   );
 };
-// ✅ Main BattleScreen Component مع نظام الحفظ التلقائي
+
+// ✅ Main BattleScreen Component
 export default function BattleScreen() {
   const router = useRouter();
   const {
@@ -577,7 +545,7 @@ export default function BattleScreen() {
     currentPlayerCard,
     currentBotCard,
     lastRoundResult,
-    useAbility,
+    useAbility, // ✅ دالة تفعيل القدرات
   } = useGame();
 
   const [phase, setPhase] = useState<BattlePhase>('showing');
@@ -585,19 +553,11 @@ export default function BattleScreen() {
   const [showPlayerEffect, setShowPlayerEffect] = useState(false);
   const [showBotEffect, setShowBotEffect] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [showPredictionModal, setShowPredictionModal] = useState(false);
-  const [predictionSelections, setPredictionSelections] = useState<Record<number, 'win' | 'loss'>>({});
-  const [predictionAbilityType, setPredictionAbilityType] = useState<'LogicalEncounter' | 'Eclipse' | 'Trap' | 'Pool'>('LogicalEncounter');
-  const [popularityAbilityType, setPopularityAbilityType] = useState<'Popularity' | 'Rescue' | 'Penetration'>('Popularity');
-  const [showPopularityModal, setShowPopularityModal] = useState(false);
-  const [selectedPopularityRound, setSelectedPopularityRound] = useState<number | null>(null);
-
   const [editMode, setEditMode] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
-  
-  // ✅ التخطيط الافتراضي حسب الصورة
+
   const DEFAULT_LAYOUT = {
     playerCard: { x: -250, y: 0, scale: 1, minScale: 0.5, maxScale: 2 },
     botCard: { x: 250, y: 0, scale: 1, minScale: 0.5, maxScale: 2 },
@@ -615,19 +575,16 @@ export default function BattleScreen() {
   const vsOpacity = useSharedValue(0);
   const resultOpacity = useSharedValue(0);
 
-  // ✅ تحميل التخطيط المحفوظ عند بدء الصفحة
   useEffect(() => {
     loadLayout();
   }, []);
 
-  // ✅ حفظ التخطيط تلقائياً عند التعديل
   useEffect(() => {
     if (editMode) {
       saveLayout();
     }
   }, [elements, editMode]);
 
-  // ✅ دالة تحميل التخطيط
   const loadLayout = async () => {
     try {
       const savedLayout = await AsyncStorage.getItem('battleLayout');
@@ -635,18 +592,17 @@ export default function BattleScreen() {
         setElements(JSON.parse(savedLayout));
         console.log('✅ تم تحميل التخطيط المحفوظ');
       } else {
-        console.log('📌 استخدام التخطيط الافتراضي');
+        console.log('ℹ️ لا يوجد تخطيط محفوظ، استخدام التخطيط الافتراضي');
       }
     } catch (error) {
       console.error('❌ خطأ في تحميل التخطيط:', error);
     }
   };
 
-  // ✅ دالة حفظ التخطيط
   const saveLayout = async () => {
     try {
       await AsyncStorage.setItem('battleLayout', JSON.stringify(elements));
-      console.log('💾 تم حفظ التخطيط');
+      console.log('✅ تم حفظ التخطيط');
     } catch (error) {
       console.error('❌ خطأ في حفظ التخطيط:', error);
     }
@@ -663,9 +619,9 @@ export default function BattleScreen() {
     setElements(DEFAULT_LAYOUT);
     try {
       await AsyncStorage.removeItem('battleLayout');
-      console.log('🔄 تم إعادة ضبط التخطيط');
+      console.log('✅ تم إعادة ضبط التخطيط');
     } catch (error) {
-      console.error('❌ خطأ في إعادة الضبط:', error);
+      console.error('❌ خطأ في إعادة ضبط التخطيط:', error);
     }
   };
 
@@ -742,53 +698,6 @@ export default function BattleScreen() {
     }
   }, [isGameOver, router]);
 
-  const handleConfirmPrediction = useCallback(() => {
-    useAbility(predictionAbilityType, { predictions: predictionSelections });
-    setShowPredictionModal(false);
-    setPredictionSelections({});
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [predictionAbilityType, predictionSelections, useAbility]);
-
-  const handleConfirmPopularity = useCallback(() => {
-    if (selectedPopularityRound === null) {
-      return;
-    }
-    useAbility(popularityAbilityType, { round: selectedPopularityRound });
-    setShowPopularityModal(false);
-    setSelectedPopularityRound(null);
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [popularityAbilityType, selectedPopularityRound, useAbility]);
-
-  const handleSelectPrediction = useCallback((round: number, outcome: 'win' | 'loss') => {
-    setPredictionSelections((prev) => ({ ...prev, [round]: outcome }));
-  }, []);
-
-  const handleClosePrediction = useCallback(() => {
-    setShowPredictionModal(false);
-  }, []);
-
-  const handleCancelPrediction = useCallback(() => {
-    setShowPredictionModal(false);
-    setPredictionSelections({});
-  }, []);
-
-  const handleSelectPopularity = useCallback((round: number) => {
-    setSelectedPopularityRound(round);
-  }, []);
-
-  const handleClosePopularity = useCallback(() => {
-    setShowPopularityModal(false);
-  }, []);
-
-  const handleCancelPopularity = useCallback(() => {
-    setShowPopularityModal(false);
-    setSelectedPopularityRound(null);
-  }, []);
-
   const playerCardAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: playerCardScale.value }],
   }));
@@ -828,26 +737,6 @@ export default function BattleScreen() {
         return '#fbbf24';
     }
   };
-
-  const roundNumber = state.currentRound + 1;
-  const upcomingRounds = useMemo(
-    () => getUpcomingPredictionRounds(roundNumber, state.totalRounds),
-    [roundNumber, state.totalRounds]
-  );
-  const remainingRounds = useMemo(
-    () => getRemainingRounds(roundNumber, state.totalRounds),
-    [roundNumber, state.totalRounds]
-  );
-  const predictionComplete = useMemo(
-    () => isPredictionComplete(upcomingRounds, predictionSelections),
-    [upcomingRounds, predictionSelections]
-  );
-  const isPopularityReady = selectedPopularityRound !== null;
-
-  const predictionSummary = useMemo(
-    () => buildPredictionSummary(state.activeEffects, 'player'),
-    [state.activeEffects]
-  );
 
   const displayPlayerCard = showResult && lastRoundResult
     ? lastRoundResult.playerCard
@@ -894,9 +783,7 @@ export default function BattleScreen() {
           style={[styles.editModeButton, editMode && styles.editModeButtonActive]}
           onPress={() => setEditMode(!editMode)}
         >
-          <Text style={styles.editModeButtonText}>
-            {editMode ? '✓ حفظ' : '✏️ تعديل'}
-          </Text>
+          <Text style={styles.editModeButtonText}>{editMode ? '✓ حفظ' : '✏️ تعديل'}</Text>
         </TouchableOpacity>
 
         {editMode && (
@@ -920,7 +807,6 @@ export default function BattleScreen() {
       )}
 
       <View style={styles.battleContainer} pointerEvents={editMode ? 'auto' : 'box-none'}>
-        
         {editMode ? (
           <>
             <DraggableResizable
@@ -987,9 +873,7 @@ export default function BattleScreen() {
             >
               <View style={styles.editElement}>
                 <Text style={styles.elementLabel}>📊 النقاط</Text>
-                <Text style={styles.scoreEditText}>
-                  {state.playerScore} - {state.botScore}
-                </Text>
+                <Text style={styles.scoreEditText}>{state.playerScore} - {state.botScore}</Text>
               </View>
             </DraggableResizable>
 
@@ -1005,9 +889,7 @@ export default function BattleScreen() {
             >
               <View style={styles.editElement}>
                 <Text style={styles.elementLabel}>🔢 الجولة</Text>
-                <Text style={styles.roundEditText}>
-                  الجولة {state.currentRound + 1}/{state.totalRounds}
-                </Text>
+                <Text style={styles.roundEditText}>الجولة {state.currentRound + 1}/{state.totalRounds}</Text>
               </View>
             </DraggableResizable>
 
@@ -1047,23 +929,22 @@ export default function BattleScreen() {
             >
               <View style={styles.editElement}>
                 <Text style={styles.elementLabel}>🏆 النتيجة</Text>
-                <Text style={[styles.resultEditText, { color: '#fbbf24' }]}>
-                  🤝 تعادلاً!
-                </Text>
+                <Text style={[styles.resultEditText, { color: '#fbbf24' }]}>🤝 تعادلاً!</Text>
               </View>
             </DraggableResizable>
           </>
         ) : (
           <View style={styles.normalPlayContainer}>
-            
-            <View style={[
-              styles.absolutePositionFixed,
-              {
-                left: CENTER_X + elements.playerCard.x,
-                top: CENTER_Y + elements.playerCard.y,
-                transform: [{ scale: elements.playerCard.scale }],
-              }
-            ]}>
+            <View
+              style={[
+                styles.absolutePositionFixed,
+                {
+                  left: CENTER_X + elements.playerCard.x,
+                  top: CENTER_Y + elements.playerCard.y,
+                  transform: [{ scale: elements.playerCard.scale }],
+                },
+              ]}
+            >
               <Text style={styles.playerLabel}>👤 أنت</Text>
               <Animated.View style={playerCardAnimatedStyle}>
                 <CardItem card={displayPlayerCard} size="large" />
@@ -1071,12 +952,17 @@ export default function BattleScreen() {
                   <ElementEffect element={displayPlayerCard.element} style={styles.elementEffect} />
                 )}
               </Animated.View>
-              
+
               {showResult && lastRoundResult && (
                 <View style={styles.damageContainer}>
                   <Text style={styles.damageText}>الضرر: {lastRoundResult.playerDamage}</Text>
                   {lastRoundResult.playerElementAdvantage !== 'neutral' && (
-                    <Text style={[styles.advantageText, { color: getAdvantageColor(lastRoundResult.playerElementAdvantage) }]}>
+                    <Text
+                      style={[
+                        styles.advantageText,
+                        { color: getAdvantageColor(lastRoundResult.playerElementAdvantage) },
+                      ]}
+                    >
                       {ELEMENT_EMOJI[lastRoundResult.playerCard.element]} {getAdvantageText(lastRoundResult.playerElementAdvantage)}
                     </Text>
                   )}
@@ -1084,14 +970,16 @@ export default function BattleScreen() {
               )}
             </View>
 
-            <View style={[
-              styles.absolutePositionFixed,
-              {
-                left: CENTER_X + elements.botCard.x,
-                top: CENTER_Y + elements.botCard.y,
-                transform: [{ scale: elements.botCard.scale }],
-              }
-            ]}>
+            <View
+              style={[
+                styles.absolutePositionFixed,
+                {
+                  left: CENTER_X + elements.botCard.x,
+                  top: CENTER_Y + elements.botCard.y,
+                  transform: [{ scale: elements.botCard.scale }],
+                },
+              ]}
+            >
               <Text style={styles.playerLabel}>🤖 البوت</Text>
               <Animated.View style={botCardAnimatedStyle}>
                 <CardItem card={displayBotCard} size="large" />
@@ -1099,12 +987,17 @@ export default function BattleScreen() {
                   <ElementEffect element={displayBotCard.element} style={styles.elementEffect} />
                 )}
               </Animated.View>
-              
+
               {showResult && lastRoundResult && (
                 <View style={styles.damageContainer}>
                   <Text style={styles.damageText}>الضرر: {lastRoundResult.botDamage}</Text>
                   {lastRoundResult.botElementAdvantage !== 'neutral' && (
-                    <Text style={[styles.advantageText, { color: getAdvantageColor(lastRoundResult.botElementAdvantage) }]}>
+                    <Text
+                      style={[
+                        styles.advantageText,
+                        { color: getAdvantageColor(lastRoundResult.botElementAdvantage) },
+                      ]}
+                    >
                       {ELEMENT_EMOJI[lastRoundResult.botCard.element]} {getAdvantageText(lastRoundResult.botElementAdvantage)}
                     </Text>
                   )}
@@ -1112,26 +1005,30 @@ export default function BattleScreen() {
               )}
             </View>
 
-            <Animated.View style={[
-              styles.absolutePositionFixed,
-              vsAnimatedStyle,
-              {
-                left: CENTER_X + elements.vs.x,
-                top: CENTER_Y + elements.vs.y,
-                transform: [{ scale: elements.vs.scale }],
-              }
-            ]}>
+            <Animated.View
+              style={[
+                styles.absolutePositionFixed,
+                vsAnimatedStyle,
+                {
+                  left: CENTER_X + elements.vs.x,
+                  top: CENTER_Y + elements.vs.y,
+                  transform: [{ scale: elements.vs.scale }],
+                },
+              ]}
+            >
               <Text style={styles.vsText}>⚔️ VS ⚔️</Text>
             </Animated.View>
 
-            <View style={[
-              styles.absolutePositionFixed,
-              {
-                left: CENTER_X + elements.score.x,
-                top: CENTER_Y + elements.score.y,
-                transform: [{ scale: elements.score.scale }],
-              }
-            ]}>
+            <View
+              style={[
+                styles.absolutePositionFixed,
+                {
+                  left: CENTER_X + elements.score.x,
+                  top: CENTER_Y + elements.score.y,
+                  transform: [{ scale: elements.score.scale }],
+                },
+              ]}
+            >
               <View style={styles.scoreBoard}>
                 <Text style={[styles.score, { color: '#4ade80' }]}>{state.playerScore}</Text>
                 <Text style={styles.scoreSeparator}>-</Text>
@@ -1139,115 +1036,79 @@ export default function BattleScreen() {
               </View>
             </View>
 
-            <View style={[
-              styles.absolutePositionFixed,
-              {
-                left: CENTER_X + elements.round.x,
-                top: CENTER_Y + elements.round.y,
-                transform: [{ scale: elements.round.scale }],
-              }
-            ]}>
-              {predictionSummary ? (
-                <Text style={styles.predictionSummary}>{predictionSummary}</Text>
-              ) : null}
+            <View
+              style={[
+                styles.absolutePositionFixed,
+                {
+                  left: CENTER_X + elements.round.x,
+                  top: CENTER_Y + elements.round.y,
+                  transform: [{ scale: elements.round.scale }],
+                },
+              ]}
+            >
               <Text style={styles.roundText}>
                 الجولة {showResult ? lastRoundResult?.round : state.currentRound + 1}/{state.totalRounds}
               </Text>
             </View>
 
-            {state.abilitiesEnabled && (
-              <View style={[
+            {/* ✅ قسم القدرات - مع ربط الأزرار بـ useAbility */}
+            <View
+              style={[
                 styles.absolutePositionFixed,
                 {
                   left: CENTER_X + elements.abilities.x,
                   top: CENTER_Y + elements.abilities.y,
                   transform: [{ scale: elements.abilities.scale }],
-                }
-              ]}>
-                <View style={styles.abilitiesSidebar}>
-                  <Text style={styles.abilitiesTitle}>قدرات اللعب</Text>
-                  {state.playerAbilities.map((ability, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.abilityButtonVertical,
-                        ability.used && styles.abilityButtonDisabled
-                      ]}
-                      onPress={() => {
-                        if (ability.used) {
-                          return;
-                        }
-
-                        const isSealed = state.activeEffects.some(
-                          (effect) =>
-                            effect.kind === 'silenceAbilities' &&
-                            (effect.targetSide === 'player' || effect.targetSide === 'all') &&
-                            effect.createdAtRound <= roundNumber &&
-                            (effect.expiresAtRound === undefined || roundNumber <= effect.expiresAtRound)
-                        );
-
-                        if (isSealed) {
-                          Alert.alert('القدرات مختومة', 'لا يمكنك تفعيل القدرات خلال مدة الختم.');
-                          return;
-                        }
-
-                        if (
-                          ability.type === 'LogicalEncounter' ||
-                          ability.type === 'Eclipse' ||
-                          ability.type === 'Trap' ||
-                          ability.type === 'Pool'
-                        ) {
-                          if (upcomingRounds.length === 0) {
-                            return;
-                          }
-                          setPredictionSelections({});
-                          setPredictionAbilityType(ability.type);
-                          setShowPredictionModal(true);
-                          return;
-                        }
-
-                        if (
-                          ability.type === 'Popularity' ||
-                          ability.type === 'Rescue' ||
-                          ability.type === 'Penetration'
-                        ) {
-                          if (remainingRounds.length === 0) {
-                            return;
-                          }
-                          setSelectedPopularityRound(null);
-                          setPopularityAbilityType(ability.type);
-                          setShowPopularityModal(true);
-                          return;
-                        }
-
+                },
+              ]}
+            >
+              <View style={styles.abilitiesSidebar}>
+                <Text style={styles.abilitiesTitle}>قدرات اللعب</Text>
+                {state.playerAbilities.map((ability, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.abilityButtonVertical,
+                      ability.used && styles.abilityButtonDisabled
+                    ]}
+                    onPress={() => {
+                      if (!ability.used) {
+                        // ✅ هنا يتم تفعيل القدرة
                         useAbility(ability.type);
+                        
+                        // ✅ إضافة رسالة console للتطوير
+                        console.log(`✨ تم استخدام قدرة: ${getAbilityNameAr(ability.type)}`);
+                        
+                        // ✅ اهتزاز للجوال
                         if (Platform.OS !== 'web') {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                         }
-                      }}
-                      disabled={ability.used}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.abilityButtonTextVertical}>
-                        {ability.used ? '✗ ' : '✓ '}
-                        {getAbilityNameAr(ability.type)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                      }
+                    }}
+                    disabled={ability.used}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.abilityButtonTextVertical}>
+                      {ability.used ? '✗ ' : '✓ '}
+                      {getAbilityNameAr(ability.type)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            )}
+            </View>
 
             {showResult && (
-              <Animated.View style={[
-                styles.absolutePositionFixed,
-                resultAnimatedStyle,
-                {
-                  left: CENTER_X + elements.result.x,
-                  top: CENTER_Y + elements.result.y,
-                  transform: [{ scale: elements.result.scale }],
-                }
-              ]}>
+              <Animated.View
+                style={[
+                  styles.absolutePositionFixed,
+                  resultAnimatedStyle,
+                  {
+                    left: CENTER_X + elements.result.x,
+                    top: CENTER_Y + elements.result.y,
+                    transform: [{ scale: elements.result.scale }],
+                  },
+                ]}
+              >
                 <View style={styles.resultContainer}>
                   <Text style={[styles.resultText, { color: getResultColor() }]}>
                     {getResultMessage()}
@@ -1281,28 +1142,6 @@ export default function BattleScreen() {
         )}
       </View>
 
-      <PredictionModal
-        visible={showPredictionModal}
-        upcomingRounds={upcomingRounds}
-        selections={predictionSelections}
-        onSelect={handleSelectPrediction}
-        onCancel={handleCancelPrediction}
-        onRequestClose={handleClosePrediction}
-        onConfirm={handleConfirmPrediction}
-        isConfirmDisabled={!predictionComplete}
-      />
-
-      <PopularityModal
-        visible={showPopularityModal}
-        remainingRounds={remainingRounds}
-        selectedRound={selectedPopularityRound}
-        onSelect={handleSelectPopularity}
-        onCancel={handleCancelPopularity}
-        onRequestClose={handleClosePopularity}
-        onConfirm={handleConfirmPopularity}
-        isConfirmDisabled={!isPopularityReady}
-      />
-
       <Modal
         visible={showHistoryModal}
         transparent
@@ -1314,7 +1153,7 @@ export default function BattleScreen() {
             <View style={styles.historyModalHeader}>
               <Text style={styles.historyModalTitle}>سجل البطاقات</Text>
               <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
-                <Text style={styles.historyModalCloseButton}>✕</Text>
+                <Text style={styles.historyModalCloseButton}>×</Text>
               </TouchableOpacity>
             </View>
 
@@ -1322,23 +1161,37 @@ export default function BattleScreen() {
               {state.roundResults.map((result) => (
                 <View key={result.round} style={styles.historyRoundItem}>
                   <Text style={styles.historyRoundNumber}>الجولة {result.round}</Text>
+
                   <View style={styles.historyCardsRow}>
                     <View style={styles.historyCardSection}>
                       <Text style={styles.historyCardLabel}>👤 أنت</Text>
                       <Text style={styles.historyCardName}>{result.playerCard.nameAr}</Text>
                       <Text style={styles.historyCardStats}>الضرر: {result.playerDamage}</Text>
                     </View>
+
                     <View style={styles.historyVS}>
                       <Text style={styles.historyVSText}>VS</Text>
                     </View>
+
                     <View style={styles.historyCardSection}>
                       <Text style={styles.historyCardLabel}>🤖 البوت</Text>
                       <Text style={styles.historyCardName}>{result.botCard.nameAr}</Text>
                       <Text style={styles.historyCardStats}>الضرر: {result.botDamage}</Text>
                     </View>
                   </View>
-                  <Text style={[styles.historyWinner, { color: result.winner === 'player' ? '#4ade80' : result.winner === 'bot' ? '#f87171' : '#fbbf24' }]}>
-                    {result.winner === 'player' ? '✓ أنت الفائز' : result.winner === 'bot' ? '✗ البوت يفوز' : '= تعادل'}
+
+                  <Text
+                    style={[
+                      styles.historyWinner,
+                      {
+                        color:
+                          result.winner === 'player' ? '#4ade80' :
+                          result.winner === 'bot' ? '#f87171' : '#fbbf24'
+                      }
+                    ]}
+                  >
+                    {result.winner === 'player' ? '✓ أنت الفائز' :
+                     result.winner === 'bot' ? '✗ البوت يفوز' : '= تعادل'}
                   </Text>
                 </View>
               ))}
@@ -1360,7 +1213,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 0,
   },
-
   pageBorders: {
     position: 'absolute',
     top: 0,
@@ -1369,7 +1221,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 1,
   },
-
   borderTop: {
     position: 'absolute',
     top: 0,
@@ -1382,7 +1233,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 8,
   },
-
   borderBottom: {
     position: 'absolute',
     bottom: 0,
@@ -1395,7 +1245,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 8,
   },
-
   borderLeft: {
     position: 'absolute',
     top: 0,
@@ -1408,7 +1257,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 8,
   },
-
   borderRight: {
     position: 'absolute',
     top: 0,
@@ -1421,7 +1269,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 8,
   },
-
   corner: {
     position: 'absolute',
     width: 20,
@@ -1429,35 +1276,30 @@ const styles = StyleSheet.create({
     borderColor: '#d4af37',
     backgroundColor: 'rgba(212, 175, 55, 0.3)',
   },
-
   cornerTopLeft: {
     top: 0,
     left: 0,
     borderTopWidth: 5,
     borderLeftWidth: 5,
   },
-
   cornerTopRight: {
     top: 0,
     right: 0,
     borderTopWidth: 5,
     borderRightWidth: 5,
   },
-
   cornerBottomLeft: {
     bottom: 0,
     left: 0,
     borderBottomWidth: 5,
     borderLeftWidth: 5,
   },
-
   cornerBottomRight: {
     bottom: 0,
     right: 0,
     borderBottomWidth: 5,
     borderRightWidth: 5,
   },
-
   sidebar: {
     position: 'absolute',
     left: 0,
@@ -1473,7 +1315,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 10,
   },
-
   sidebarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1483,13 +1324,11 @@ const styles = StyleSheet.create({
     borderBottomColor: '#d4af37',
     backgroundColor: 'rgba(212, 175, 55, 0.1)',
   },
-
   sidebarTitle: {
     color: '#d4af37',
     fontSize: 16,
     fontWeight: 'bold',
   },
-
   sidebarCloseButton: {
     width: 30,
     height: 30,
@@ -1498,18 +1337,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(248, 113, 113, 0.2)',
     borderRadius: 15,
   },
-
   sidebarCloseButtonText: {
     color: '#f87171',
     fontSize: 18,
     fontWeight: 'bold',
   },
-
   sidebarContent: {
     flex: 1,
     padding: 16,
   },
-
   sidebarSection: {
     marginBottom: 20,
     padding: 12,
@@ -1518,14 +1354,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.2)',
   },
-
   sidebarSectionTitle: {
     color: '#d4af37',
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 12,
   },
-
   sidebarOption: {
     padding: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -1534,18 +1368,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.2)',
   },
-
   sidebarOptionActive: {
     backgroundColor: 'rgba(212, 175, 55, 0.2)',
     borderColor: '#d4af37',
   },
-
   sidebarOptionText: {
     color: '#fff',
     fontSize: 13,
     fontWeight: '500',
   },
-
   elementItem: {
     padding: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -1554,23 +1385,19 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: '#d4af37',
   },
-
   elementItemLabel: {
     color: '#d4af37',
     fontSize: 12,
     fontWeight: 'bold',
     marginBottom: 6,
   },
-
   elementItemControls: {
     gap: 4,
   },
-
   elementItemValue: {
     color: '#aaa',
     fontSize: 11,
   },
-
   sidebarActionButton: {
     padding: 12,
     backgroundColor: '#d4af37',
@@ -1578,23 +1405,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     alignItems: 'center',
   },
-
   sidebarActionButtonSecondary: {
     backgroundColor: 'rgba(212, 175, 55, 0.3)',
   },
-
   sidebarActionButtonText: {
     color: '#1a1a1a',
     fontSize: 13,
     fontWeight: 'bold',
   },
-
   sidebarInfoText: {
     color: '#888',
     fontSize: 11,
     lineHeight: 18,
   },
-
   gridContainer: {
     position: 'absolute',
     top: 0,
@@ -1603,7 +1426,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 2,
   },
-
   verticalLine: {
     position: 'absolute',
     left: '50%',
@@ -1616,7 +1438,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 4,
   },
-
   horizontalLine: {
     position: 'absolute',
     top: '50%',
@@ -1629,7 +1450,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 4,
   },
-
   verticalLineThin: {
     position: 'absolute',
     top: 0,
@@ -1637,7 +1457,6 @@ const styles = StyleSheet.create({
     width: 1,
     backgroundColor: 'rgba(212, 175, 55, 0.2)',
   },
-
   horizontalLineThin: {
     position: 'absolute',
     left: 0,
@@ -1645,7 +1464,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(212, 175, 55, 0.2)',
   },
-
   centerDot: {
     position: 'absolute',
     left: '50%',
@@ -1663,7 +1481,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#1a1a1a',
   },
-
   quadrantLabel: {
     position: 'absolute',
     width: 30,
@@ -1677,13 +1494,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.4)',
   },
-
   quadrantText: {
     color: '#d4af37',
     fontSize: 16,
     fontWeight: 'bold',
   },
-
   mainControls: {
     position: 'absolute',
     top: 20,
@@ -1692,7 +1507,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
-
   editModeButton: {
     backgroundColor: '#d4af37',
     paddingHorizontal: 20,
@@ -1704,17 +1518,14 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-
   editModeButtonActive: {
     backgroundColor: '#4ade80',
   },
-
   editModeButtonText: {
     color: '#1a1a1a',
     fontSize: 14,
     fontWeight: 'bold',
   },
-
   sidebarToggleButton: {
     backgroundColor: '#666',
     paddingHorizontal: 20,
@@ -1726,13 +1537,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-
   sidebarToggleButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
   },
-
   editInstructions: {
     position: 'absolute',
     top: 80,
@@ -1743,23 +1552,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     zIndex: 199,
   },
-
   editInstructionsText: {
     color: '#1a1a1a',
     fontSize: 13,
     fontWeight: 'bold',
     textAlign: 'center',
   },
-
   battleContainer: {
     flex: 1,
     zIndex: 1,
   },
-
   draggableContainer: {
     position: 'relative',
   },
-
   transformHandlesContainer: {
     position: 'absolute',
     top: -30,
@@ -1767,7 +1572,6 @@ const styles = StyleSheet.create({
     right: -30,
     bottom: -30,
   },
-
   resizeHandle: {
     position: 'absolute',
     width: 12,
@@ -1778,13 +1582,11 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     zIndex: 10,
   },
-
   resizeHandleInner: {
     width: '100%',
     height: '100%',
     backgroundColor: '#2196F3',
   },
-
   resizeHandle_topleft: { top: 0, left: 0 },
   resizeHandle_topright: { top: 0, right: 0 },
   resizeHandle_bottomleft: { bottom: 50, left: 0 },
@@ -1793,7 +1595,6 @@ const styles = StyleSheet.create({
   resizeHandle_bottom: { bottom: 50, left: '50%', marginLeft: -6 },
   resizeHandle_left: { top: '50%', left: 0, marginTop: -6 },
   resizeHandle_right: { top: '50%', right: 0, marginTop: -6 },
-
   centerDotHandle: {
     position: 'absolute',
     left: '50%',
@@ -1805,7 +1606,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   centerDotInner: {
     width: 8,
     height: 8,
@@ -1814,7 +1614,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
   },
-
   fixedScaleControls: {
     position: 'absolute',
     bottom: -60,
@@ -1835,7 +1634,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 10,
   },
-
   scaleControlButton: {
     backgroundColor: '#2196F3',
     width: 36,
@@ -1848,20 +1646,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 4,
   },
-
   scaleControlButtonDisabled: {
     backgroundColor: '#555',
     opacity: 0.5,
     shadowOpacity: 0,
   },
-
   scaleControlButtonText: {
     color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
     lineHeight: 24,
   },
-
   scaleControlDisplay: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: 12,
@@ -1870,18 +1665,15 @@ const styles = StyleSheet.create({
     minWidth: 60,
     alignItems: 'center',
   },
-
   scaleControlText: {
     color: '#4ade80',
     fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
   },
-
   editElement: {
     alignItems: 'center',
   },
-
   elementLabel: {
     color: '#d4af37',
     fontSize: 13,
@@ -1889,62 +1681,52 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
-
   vsEditText: {
     color: '#e94560',
     fontSize: 24,
     fontWeight: 'bold',
     padding: 12,
   },
-
   scoreEditText: {
     color: '#fff',
     fontSize: 22,
     fontWeight: 'bold',
     padding: 8,
   },
-
   roundEditText: {
     color: '#d4af37',
     fontSize: 15,
     fontWeight: 'bold',
     padding: 8,
   },
-
   abilitiesEditBox: {
     gap: 6,
     minHeight: 300,
   },
-
   abilityEditItem: {
     backgroundColor: '#d4af37',
     padding: 10,
     borderRadius: 12,
     minWidth: 120,
   },
-
   abilityEditText: {
     color: '#1a1a1a',
     fontSize: 11,
     fontWeight: 'bold',
     textAlign: 'center',
   },
-
   resultEditText: {
     fontSize: 20,
     fontWeight: 'bold',
     padding: 12,
   },
-
   normalPlayContainer: {
     flex: 1,
   },
-
   absolutePositionFixed: {
     position: 'absolute',
     alignItems: 'center',
   },
-
   playerLabel: {
     fontSize: 14,
     color: '#d4af37',
@@ -1952,7 +1734,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-
   elementEffect: {
     position: 'absolute',
     top: 0,
@@ -1960,57 +1741,47 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-
   damageContainer: {
     alignItems: 'center',
     marginTop: 12,
   },
-
   damageText: {
     fontSize: 14,
     color: '#e94560',
     fontWeight: 'bold',
   },
-
   advantageText: {
     fontSize: 12,
     fontWeight: 'bold',
     marginTop: 4,
   },
-
   vsText: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#e94560',
   },
-
   scoreBoard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-
   score: {
     fontSize: 32,
     fontWeight: 'bold',
   },
-
   scoreSeparator: {
     fontSize: 28,
     color: '#a0a0a0',
   },
-
   roundText: {
     fontSize: 18,
     color: '#d4af37',
     fontWeight: 'bold',
   },
-
   abilitiesSidebar: {
     gap: 12,
     padding: 8,
   },
-
   abilitiesTitle: {
     fontSize: 12,
     fontWeight: 'bold',
@@ -2018,7 +1789,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
-
   abilityButtonVertical: {
     backgroundColor: '#d4af37',
     paddingVertical: 12,
@@ -2029,19 +1799,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 120,
   },
-
   abilityButtonDisabled: {
     backgroundColor: '#666',
     opacity: 0.5,
   },
-
   abilityButtonTextVertical: {
     fontSize: 11,
     fontWeight: 'bold',
     color: '#1a1a1a',
     textAlign: 'center',
   },
-
   resultContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -2050,12 +1817,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#d4af37',
   },
-
   resultText: {
     fontSize: 22,
     fontWeight: 'bold',
   },
-
   bottomControlsFixed: {
     position: 'absolute',
     bottom: 20,
@@ -2063,7 +1828,6 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 100,
   },
-
   historyButton: {
     backgroundColor: '#666',
     paddingHorizontal: 20,
@@ -2072,13 +1836,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     alignSelf: 'flex-start',
   },
-
   historyButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#fff',
   },
-
   nextButtonLarge: {
     backgroundColor: '#d4af37',
     borderRadius: 24,
@@ -2086,30 +1848,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
-
   nextButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1a1a1a',
   },
-
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   loadingText: {
     fontSize: 18,
     color: '#a0a0a0',
   },
-
   historyModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'flex-end',
   },
-
   historyModalContent: {
     backgroundColor: '#1a1a1a',
     borderTopLeftRadius: 20,
@@ -2118,7 +1875,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderTopColor: '#d4af37',
   },
-
   historyModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2128,23 +1884,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#333',
   },
-
   historyModalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#d4af37',
   },
-
   historyModalCloseButton: {
     fontSize: 24,
     color: '#a0a0a0',
   },
-
   historyScroll: {
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-
   historyRoundItem: {
     backgroundColor: '#2a2a2a',
     borderRadius: 12,
@@ -2153,64 +1905,49 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: '#d4af37',
   },
-
   historyRoundNumber: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#d4af37',
     marginBottom: 8,
   },
-
   historyCardsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
-
   historyCardSection: {
     flex: 1,
     alignItems: 'center',
   },
-
   historyCardLabel: {
     fontSize: 12,
     color: '#a0a0a0',
     marginBottom: 4,
   },
-
   historyCardName: {
     fontSize: 12,
     fontWeight: 'bold',
     color: '#eee',
     marginBottom: 4,
   },
-
   historyCardStats: {
     fontSize: 11,
     color: '#888',
   },
-
   historyVS: {
     marginHorizontal: 8,
   },
-
   historyVSText: {
     fontSize: 12,
     fontWeight: 'bold',
     color: '#d4af37',
   },
-
   historyWinner: {
     fontSize: 12,
     fontWeight: 'bold',
     textAlign: 'center',
     marginTop: 8,
-  },
-  predictionSummary: {
-    fontSize: 12,
-    color: '#fbbf24',
-    textAlign: 'center',
-    marginBottom: 4,
   },
 });

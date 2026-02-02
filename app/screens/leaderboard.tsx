@@ -30,6 +30,15 @@ export default function LeaderboardScreen() {
     }
   };
 
+  const handleRandomSelect = () => {
+    const shuffled = [...numberOptions];
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    setSelectedNumbers(shuffled.slice(0, totalRounds));
+  };
+
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
@@ -74,6 +83,14 @@ export default function LeaderboardScreen() {
               activeOpacity={0.8}
             >
               <Text style={styles.backButtonText}>← رجوع</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleRandomSelect}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.backButtonText}>🎲 اختيار عشوائي</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

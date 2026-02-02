@@ -56,7 +56,7 @@ export default function ResultsScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     resetGame();
-    router.replace('/');
+    router.replace('/screens/rounds-config' as any);
   };
 
   const handleBackToMenu = () => {
@@ -64,7 +64,7 @@ export default function ResultsScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     resetGame();
-    router.replace('/');
+    router.replace('/screens/rounds-config' as any);
   };
 
   // الحصول على رسالة النتيجة

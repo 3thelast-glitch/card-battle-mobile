@@ -7,7 +7,7 @@ import { useGame } from '@/lib/game/game-context';
 
 export default function RoundsConfigScreen() {
   const router = useRouter();
-  const { setTotalRounds } = useGame();
+  const { setTotalRounds, setAbilitiesEnabled } = useGame();
   const [rounds, setRounds] = useState(5);
   const [withAbility, setWithAbility] = useState(false);
 
@@ -53,7 +53,10 @@ export default function RoundsConfigScreen() {
             <View style={styles.abilityButtonsContainer}>
               <TouchableOpacity
                 style={[styles.abilityButton, withAbility && styles.abilityButtonActive]}
-                onPress={() => setWithAbility(true)}
+                onPress={() => {
+                  setWithAbility(true);
+                  setAbilitiesEnabled(true);
+                }}
                 activeOpacity={0.8}
               >
                 <Text
@@ -67,7 +70,10 @@ export default function RoundsConfigScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.abilityButton, !withAbility && styles.abilityButtonActive]}
-                onPress={() => setWithAbility(false)}
+                onPress={() => {
+                  setWithAbility(false);
+                  setAbilitiesEnabled(false);
+                }}
                 activeOpacity={0.8}
               >
                 <Text
@@ -96,6 +102,7 @@ export default function RoundsConfigScreen() {
               style={styles.startButton}
               onPress={() => {
                 setTotalRounds(rounds);
+                setAbilitiesEnabled(withAbility);
                 router.push('/screens/leaderboard' as any);
               }}
               activeOpacity={0.8}
