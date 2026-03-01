@@ -1,5 +1,7 @@
 // أنواع البطاقات والإحصائيات
 
+import type { ImageSourcePropType } from 'react-native';
+
 export type Race = 'human' | 'elf' | 'orc' | 'dragon' | 'demon' | 'undead';
 
 export type CardClass = 'warrior' | 'knight' | 'mage' | 'archer' | 'berserker' | 'paladin';
@@ -8,7 +10,20 @@ export type Element = 'fire' | 'ice' | 'water' | 'earth' | 'lightning' | 'wind';
 
 export type Tag = 'sword' | 'shield' | 'magic' | 'bow' | 'crown';
 
-import type { ImageSourcePropType } from 'react-native';
+/** Rarity tier for a card — drives visual design (gradient, border, glow, particles) */
+export type CardRarity = 'common' | 'rare' | 'epic' | 'legendary';
+
+/** Special in-game effects a card can carry */
+export type CardEffect = 'taunt' | 'divine_shield' | 'poison' | 'stealth' | 'charge';
+
+/** Localised string for bilingual support */
+export interface LocalizedString {
+  en: string;
+  ar: string;
+}
+
+/** Per-card animation preset key */
+export type CardAnimationPreset = 'default' | 'fire' | 'ice' | 'lightning' | 'shadow' | 'holy';
 
 export interface Card {
   id: string;
@@ -24,7 +39,13 @@ export interface Card {
   element: Element;
   tags: Tag[];
   emoji: string;
-  videoUrl?: string; // رابط الفيديو للقدرة الخاصة
+  videoUrl?: string;
+  /** Visual rarity tier — defaults to 'common' if absent */
+  rarity?: CardRarity;
+  /** Special gameplay effects this card carries */
+  cardEffects?: CardEffect[];
+  /** Animation preset key for battle animations */
+  animationPreset?: CardAnimationPreset;
 }
 
 export type AbilityType =

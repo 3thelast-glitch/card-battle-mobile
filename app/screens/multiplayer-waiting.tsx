@@ -1,244 +1,213 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Share, ActivityIndicator } from 'react-native';
+/**
+ * MultiplayerWaitingScreen
+ * Shows the animated room code + player status.
+ * When opponent joins → navigate to card-selection → then battle.
+ */
+
+import React, { useEffect, useCallback } from 'react';
+import {
+  View, Text, TouchableOpacity, StyleSheet,
+  Share, ActivityIndicator, Pressable,
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import Animated, {
+  useSharedValue, useAnimatedStyle,
+  withRepeat, withSequence, withTiming,
+} from 'react-native-reanimated';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
 
+// Pulsing online indicator
+function PulsingDot({ connected }: { connected: boolean }) {
+  const scale = useSharedValue(1);
+  useEffect(() => {
+    if (connected) {
+      scale.value = withRepeat(
+        withSequence(
+          withTiming(1.35, { duration: 600 }),
+          withTiming(1.00, { duration: 600 })
+        ),
+        -1
+      );
+    } else {
+      scale.value = 1;
+    }
+  }, [connected]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <Animated.View style={[styles.dot, { backgroundColor: connected ? '#4ade80' : '#6b7280' }, style]} />
+  );
+}
+
 export default function MultiplayerWaitingScreen() {
   const router = useRouter();
-  const { state, leaveRoom } = useMultiplayer();
-  
-  // الانتقال لشاشة اختيار الجولات عند انضمام اللاعب الآخر
+  const { state, setPlayerReady, leaveRoom } = useMultiplayer();
+
+  // When opponent joins + status becomes 'playing' → go to card selection
   useEffect(() => {
-    if (state.opponentId && state.status === 'waiting') {
-      // كلا اللاعبين موجودان، انتقل للمعركة
-      setTimeout(() => {
-        router.push('/screens/multiplayer-battle' as any);
-      }, 1000);
+    if (state.status === 'playing') {
+      router.push('/screens/card-selection' as any);
     }
-  }, [state.opponentId, state.status]);
-  
-  const handleShare = async () => {
+  }, [state.status]);
+
+  // If host and both players present but still in 'waiting', auto-mark ready
+  // (card selection screen handles setPlayerCards + setPlayerReady)
+
+  const handleShare = useCallback(async () => {
     if (!state.roomId) return;
-    
     try {
       await Share.share({
         message: `انضم لمباراتي في Card Clash!\nرمز الغرفة: ${state.roomId}`,
       });
-    } catch (error) {
-      console.error('Error sharing:', error);
-    }
-  };
-  
-  const handleLeave = () => {
+    } catch { }
+  }, [state.roomId]);
+
+  const handleCopy = useCallback(async () => {
+    if (!state.roomId) return;
+    try {
+      await Share.share({ message: state.roomId });
+    } catch { }
+  }, [state.roomId]);
+
+  const handleLeave = useCallback(() => {
     leaveRoom();
     router.back();
-  };
-  
+  }, [leaveRoom, router]);
+
+  const roomCode = state.roomId ?? '------';
+
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
         <View style={styles.container}>
+
           {/* Title */}
-          <Text style={styles.title}>غرفة اللعب</Text>
-          
-          {/* Room Code */}
-          <View style={styles.roomCodeContainer}>
-            <Text style={styles.roomCodeLabel}>رمز الغرفة:</Text>
-            <Text style={styles.roomCode}>{state.roomId}</Text>
-          </View>
-          
-          {/* Waiting Status */}
-          <View style={styles.waitingContainer}>
-            <ActivityIndicator size="large" color="#FFD700" />
-            <Text style={styles.waitingText}>
-              {state.isHost
-                ? 'في انتظار انضمام لاعب آخر...'
-                : 'جاري الاتصال بالمضيف...'}
-            </Text>
-          </View>
-          
-          {/* Players Info */}
-          <View style={styles.playersContainer}>
-            <View style={styles.playerCard}>
-              <Text style={styles.playerLabel}>أنت</Text>
-              <Text style={styles.playerName}>{state.playerName || 'اللاعب 1'}</Text>
-              <View style={styles.playerStatus}>
-                <View style={styles.statusDotConnected} />
-                <Text style={styles.statusText}>متصل</Text>
+          <Text style={styles.title}>🎮 غرفة اللعب</Text>
+
+          {/* Room Code Card */}
+          {state.isHost && (
+            <View style={styles.codeCard}>
+              <Text style={styles.codeLabel}>رمز الغرفة — شاركه مع صديقك</Text>
+              {/* Letter-by-letter display */}
+              <View style={styles.codeLetters}>
+                {roomCode.split('').map((ch, i) => (
+                  <View key={i} style={styles.codeLetter}>
+                    <Text style={styles.codeLetterText}>{ch}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={styles.codeActions}>
+                <Pressable style={styles.codeBtn} onPress={handleCopy}>
+                  <Text style={styles.codeBtnText}>📋 نسخ</Text>
+                </Pressable>
+                <Pressable style={styles.codeBtn} onPress={handleShare}>
+                  <Text style={styles.codeBtnText}>📤 مشاركة</Text>
+                </Pressable>
               </View>
             </View>
-            
-            <Text style={styles.vs}>VS</Text>
-            
-            <View style={styles.playerCard}>
-              <Text style={styles.playerLabel}>الخصم</Text>
-              <Text style={styles.playerName}>
-                {state.opponentName || '...'}
+          )}
+
+          {/* Waiting spinner */}
+          {!state.opponentId && (
+            <View style={styles.waitingRow}>
+              <ActivityIndicator color="#d4af37" />
+              <Text style={styles.waitingText}>
+                {state.isHost ? 'في انتظار خصم...' : 'جاري الاتصال...'}
               </Text>
-              <View style={styles.playerStatus}>
-                {state.opponentId ? (
-                  <>
-                    <View style={styles.statusDotConnected} />
-                    <Text style={styles.statusText}>متصل</Text>
-                  </>
-                ) : (
-                  <>
-                    <View style={styles.statusDot} />
-                    <Text style={styles.statusText}>في الانتظار</Text>
-                  </>
-                )}
+            </View>
+          )}
+
+          {/* Players Panel */}
+          <View style={styles.playersRow}>
+            {/* You */}
+            <View style={styles.playerBox}>
+              <Text style={styles.playerRole}>أنت</Text>
+              <Text style={styles.playerNameText}>{state.playerName || 'لاعب'}</Text>
+              <View style={styles.statusRow}>
+                <PulsingDot connected />
+                <Text style={styles.statusLabel}>متصل</Text>
+              </View>
+            </View>
+
+            <Text style={styles.vs}>⚔️</Text>
+
+            {/* Opponent */}
+            <View style={styles.playerBox}>
+              <Text style={styles.playerRole}>الخصم</Text>
+              <Text style={styles.playerNameText}>
+                {state.opponentName ?? '???'}
+              </Text>
+              <View style={styles.statusRow}>
+                <PulsingDot connected={!!state.opponentId} />
+                <Text style={styles.statusLabel}>
+                  {state.opponentId ? 'متصل ✓' : 'في الانتظار'}
+                </Text>
               </View>
             </View>
           </View>
-          
-          {/* Buttons */}
-          <View style={styles.buttonsContainer}>
-            {state.isHost && (
-              <TouchableOpacity
-                style={styles.shareButton}
-                onPress={handleShare}
-              >
-                <Text style={styles.shareButtonText}>مشاركة رمز الغرفة</Text>
-              </TouchableOpacity>
-            )}
-            
-            <TouchableOpacity
-              style={styles.leaveButton}
-              onPress={handleLeave}
-            >
-              <Text style={styles.leaveButtonText}>مغادرة</Text>
-            </TouchableOpacity>
-          </View>
+
+          {/* Spacer */}
+          <View style={{ flex: 1 }} />
+
+          {/* Leave */}
+          <TouchableOpacity style={styles.leaveBtn} onPress={handleLeave}>
+            <Text style={styles.leaveBtnText}>🚪 مغادرة الغرفة</Text>
+          </TouchableOpacity>
+
         </View>
       </LuxuryBackground>
     </ScreenContainer>
   );
 }
 
+const GOLD = '#d4af37';
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-  },
+  container: { flex: 1, padding: 20, gap: 20 },
+
   title: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    textAlign: 'center',
-    marginBottom: 30,
-    textShadowColor: '#000',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
+    fontSize: 34, fontWeight: '900', color: GOLD, textAlign: 'center',
+    textShadowColor: 'rgba(212,175,55,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12,
   },
-  roomCodeContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    borderRadius: 15,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 30,
+
+  codeCard: {
+    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 18, borderWidth: 2,
+    borderColor: GOLD + '44', padding: 18, alignItems: 'center', gap: 12,
   },
-  roomCodeLabel: {
-    fontSize: 18,
-    color: '#ccc',
-    marginBottom: 10,
+  codeLabel: { color: '#9ca3af', fontSize: 12, fontWeight: '600' },
+  codeLetters: { flexDirection: 'row', gap: 6 },
+  codeLetter: {
+    width: 38, height: 48, borderRadius: 8, borderWidth: 2, borderColor: GOLD + '66',
+    backgroundColor: 'rgba(212,175,55,0.1)', alignItems: 'center', justifyContent: 'center',
   },
-  roomCode: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    letterSpacing: 4,
+  codeLetterText: { color: GOLD, fontSize: 20, fontWeight: '900', letterSpacing: 0 },
+  codeActions: { flexDirection: 'row', gap: 10 },
+  codeBtn: {
+    backgroundColor: 'rgba(212,175,55,0.12)', borderRadius: 10, borderWidth: 1,
+    borderColor: GOLD + '33', paddingHorizontal: 16, paddingVertical: 8,
   },
-  waitingContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
+  codeBtnText: { color: GOLD, fontSize: 13, fontWeight: '700' },
+
+  waitingRow: { flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center' },
+  waitingText: { color: GOLD, fontSize: 14, fontWeight: '600' },
+
+  playersRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
+    backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: 'rgba(212,175,55,0.15)',
   },
-  waitingText: {
-    marginTop: 20,
-    fontSize: 18,
-    color: '#FFD700',
-    textAlign: 'center',
+  playerBox: { alignItems: 'center', gap: 6 },
+  playerRole: { color: '#6b7280', fontSize: 11, fontWeight: '600' },
+  playerNameText: { color: '#e5e7eb', fontSize: 16, fontWeight: '800', maxWidth: 110, textAlign: 'center' },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dot: { width: 9, height: 9, borderRadius: 5 },
+  statusLabel: { color: '#9ca3af', fontSize: 11 },
+  vs: { fontSize: 28 },
+
+  leaveBtn: {
+    borderWidth: 1.5, borderColor: '#ef4444' + '66', borderRadius: 14,
+    paddingVertical: 13, alignItems: 'center',
   },
-  playersContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    marginBottom: 40,
-  },
-  playerCard: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    borderRadius: 15,
-    padding: 20,
-    alignItems: 'center',
-    minWidth: 140,
-  },
-  playerLabel: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: 8,
-  },
-  playerName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginBottom: 10,
-  },
-  playerStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#ff4444',
-    marginRight: 6,
-  },
-  statusDotConnected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#44ff44',
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    color: '#ccc',
-  },
-  vs: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFD700',
-  },
-  buttonsContainer: {
-    gap: 15,
-  },
-  shareButton: {
-    backgroundColor: '#FFD700',
-    borderRadius: 15,
-    padding: 18,
-    alignItems: 'center',
-  },
-  shareButtonText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  leaveButton: {
-    backgroundColor: 'rgba(255, 68, 68, 0.8)',
-    borderRadius: 15,
-    padding: 18,
-    alignItems: 'center',
-  },
-  leaveButtonText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
+  leaveBtnText: { color: '#f87171', fontSize: 14, fontWeight: '700' },
 });

@@ -13,6 +13,10 @@ import { ScreenContainer } from '@/components/screen-container';
 import { CardItem } from '@/components/game/card-item';
 import { ElementEffect } from '@/components/game/element-effect';
 import { LuxuryBackground } from '@/components/game/luxury-background';
+import { HealthBar } from '@/components/game/health-bar';
+import { DamageNumber, DamageNumberVariant } from '@/components/game/damage-number';
+import { BattleHUD } from '@/components/game/BattleHUD';
+import { BattleResultOverlay } from '@/components/game/BattleResultOverlay';
 import { useGame } from '@/lib/game/game-context';
 import { ELEMENT_EMOJI, ElementAdvantage } from '@/lib/game/types';
 import { getAbilityNameAr } from '@/lib/game/ability-names';
@@ -61,7 +65,7 @@ const PageBorders = () => {
       <View style={styles.borderBottom} />
       <View style={styles.borderLeft} />
       <View style={styles.borderRight} />
-      
+
       <View style={[styles.corner, styles.cornerTopLeft]} />
       <View style={[styles.corner, styles.cornerTopRight]} />
       <View style={[styles.corner, styles.cornerBottomLeft]} />
@@ -81,7 +85,7 @@ const GridOverlay = () => {
       <View style={[styles.horizontalLineThin, { top: '25%' }]} />
       <View style={[styles.horizontalLineThin, { top: '75%' }]} />
       <View style={styles.centerDot} />
-      
+
       <View style={[styles.quadrantLabel, { left: '25%', top: '25%' }]}>
         <Text style={styles.quadrantText}>↖</Text>
       </View>
@@ -99,16 +103,16 @@ const GridOverlay = () => {
 };
 
 // ✅ Sidebar جانبي
-const EditSidebar = ({ 
-  visible, 
-  onClose, 
-  elements, 
+const EditSidebar = ({
+  visible,
+  onClose,
+  elements,
   onElementUpdate,
   showGrid,
   onToggleGrid,
   snapToGrid,
   onToggleSnap,
-  onResetLayout 
+  onResetLayout
 }: any) => {
   const slideAnim = useRef(new RNAnimated.Value(-300)).current;
 
@@ -135,7 +139,7 @@ const EditSidebar = ({
       <ScrollView style={styles.sidebarContent}>
         <View style={styles.sidebarSection}>
           <Text style={styles.sidebarSectionTitle}>⚙️ إعدادات الشبكة</Text>
-          
+
           <TouchableOpacity
             style={[styles.sidebarOption, showGrid && styles.sidebarOptionActive]}
             onPress={onToggleGrid}
@@ -157,17 +161,17 @@ const EditSidebar = ({
 
         <View style={styles.sidebarSection}>
           <Text style={styles.sidebarSectionTitle}>📦 العناصر</Text>
-          
+
           {Object.entries(elements).map(([key, value]: [string, any]) => (
             <View key={key} style={styles.elementItem}>
               <Text style={styles.elementItemLabel}>
                 {key === 'playerCard' ? '👤 بطاقة اللاعب' :
-                 key === 'botCard' ? '🤖 بطاقة البوت' :
-                 key === 'vs' ? '⚔️ VS' :
-                 key === 'score' ? '📊 النقاط' :
-                 key === 'round' ? '🔢 الجولة' :
-                 key === 'result' ? '🏆 النتيجة' :
-                 key === 'abilities' ? '🎮 القدرات' : key}
+                  key === 'botCard' ? '🤖 بطاقة البوت' :
+                    key === 'vs' ? '⚔️ VS' :
+                      key === 'score' ? '📊 النقاط' :
+                        key === 'round' ? '🔢 الجولة' :
+                          key === 'result' ? '🏆 النتيجة' :
+                            key === 'abilities' ? '🎮 القدرات' : key}
               </Text>
               <View style={styles.elementItemControls}>
                 <Text style={styles.elementItemValue}>
@@ -183,7 +187,7 @@ const EditSidebar = ({
 
         <View style={styles.sidebarSection}>
           <Text style={styles.sidebarSectionTitle}>⚡ إجراءات سريعة</Text>
-          
+
           <TouchableOpacity
             style={styles.sidebarActionButton}
             onPress={onResetLayout}
@@ -224,7 +228,7 @@ const EditSidebar = ({
 
         <View style={styles.sidebarSection}>
           <Text style={styles.sidebarSectionTitle}>🎮 ترتيب القدرات</Text>
-          
+
           <TouchableOpacity
             style={[styles.sidebarActionButton, styles.sidebarActionButtonSecondary]}
             onPress={() => {
@@ -272,11 +276,11 @@ const EditSidebar = ({
 };
 
 // ✅ مقبض تكبير واحد
-const ResizeHandle = ({ 
-  position, 
-  onResizeStart, 
-  onResizeMove, 
-  onResizeEnd 
+const ResizeHandle = ({
+  position,
+  onResizeStart,
+  onResizeMove,
+  onResizeEnd
 }: any) => {
   const initialScale = useRef(1);
 
@@ -284,17 +288,17 @@ const ResizeHandle = ({
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      
+
       onPanResponderGrant: (evt) => {
         evt.stopPropagation();
         initialScale.current = onResizeStart();
       },
-      
+
       onPanResponderMove: (evt, gestureState) => {
         evt.stopPropagation();
-        
+
         let scaleDelta = 0;
-        
+
         if (position.includes('corner')) {
           const distance = Math.sqrt(
             gestureState.dx ** 2 + gestureState.dy ** 2
@@ -306,10 +310,10 @@ const ResizeHandle = ({
         } else {
           scaleDelta = gestureState.dx / 200;
         }
-        
+
         onResizeMove(position, initialScale.current + scaleDelta);
       },
-      
+
       onPanResponderRelease: () => {
         onResizeEnd();
       },
@@ -321,7 +325,8 @@ const ResizeHandle = ({
       {...panResponder.panHandlers}
       style={[
         styles.resizeHandle,
-        styles[`resizeHandle_${position.replace('-', '')}`],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (styles as any)[`resizeHandle_${position.replace('-', '')}`],
       ]}
     >
       <View style={styles.resizeHandleInner} />
@@ -330,14 +335,14 @@ const ResizeHandle = ({
 };
 
 // ✅ مقابض التحويل
-const TransformHandles = ({ 
-  scale, 
-  onScaleChange, 
+const TransformHandles = ({
+  scale,
+  onScaleChange,
   onResizeStart,
   onResizeMove,
   onResizeEnd,
-  minScale, 
-  maxScale 
+  minScale,
+  maxScale
 }: any) => {
   const positions = [
     'top-left',
@@ -361,7 +366,7 @@ const TransformHandles = ({
           onResizeEnd={onResizeEnd}
         />
       ))}
-      
+
       <View style={styles.centerDotHandle} pointerEvents="none">
         <View style={styles.centerDotInner} />
       </View>
@@ -370,23 +375,23 @@ const TransformHandles = ({
 };
 
 // ✅ Component قابل للسحب والتكبير مع زر ثابت الحجم
-const DraggableResizable = ({ 
-  children, 
-  id, 
-  initialX = 0, 
-  initialY = 0, 
-  initialScale = 1, 
-  onUpdate, 
-  minScale = 0.5, 
-  maxScale = 2.5, 
-  snapToGrid = false 
+const DraggableResizable = ({
+  children,
+  id,
+  initialX = 0,
+  initialY = 0,
+  initialScale = 1,
+  onUpdate,
+  minScale = 0.5,
+  maxScale = 2.5,
+  snapToGrid = false
 }: any) => {
   const [scale, setScale] = useState(initialScale);
   const [isResizing, setIsResizing] = useState(false);
-  
+
   const position = useRef({ x: CENTER_X + initialX, y: CENTER_Y + initialY });
   const pan = useRef(new RNAnimated.ValueXY(position.current)).current;
-  
+
   useEffect(() => {
     const newPos = { x: CENTER_X + initialX, y: CENTER_Y + initialY };
     position.current = newPos;
@@ -441,7 +446,7 @@ const DraggableResizable = ({
     PanResponder.create({
       onStartShouldSetPanResponder: () => !isResizing,
       onMoveShouldSetPanResponder: () => !isResizing,
-      
+
       onPanResponderGrant: () => {
         pan.setOffset({
           x: position.current.x,
@@ -449,15 +454,15 @@ const DraggableResizable = ({
         });
         pan.setValue({ x: 0, y: 0 });
       },
-      
+
       onPanResponderMove: RNAnimated.event(
         [null, { dx: pan.x, dy: pan.y }],
         { useNativeDriver: false }
       ),
-      
+
       onPanResponderRelease: (evt, gestureState) => {
         pan.flattenOffset();
-        
+
         let finalX = position.current.x + gestureState.dx;
         let finalY = position.current.y + gestureState.dy;
 
@@ -472,7 +477,7 @@ const DraggableResizable = ({
         }
 
         position.current = { x: finalX, y: finalY };
-        
+
         RNAnimated.spring(pan, {
           toValue: { x: finalX, y: finalY },
           useNativeDriver: false,
@@ -510,7 +515,7 @@ const DraggableResizable = ({
       >
         <View style={styles.draggableContainer}>
           {children}
-          
+
           <TransformHandles
             scale={scale}
             onScaleChange={handleScaleChange}
@@ -522,7 +527,7 @@ const DraggableResizable = ({
           />
         </View>
       </RNAnimated.View>
-      
+
       {/* ✅ الزر الثابت خارج Scale */}
       <RNAnimated.View
         style={{
@@ -547,11 +552,11 @@ const DraggableResizable = ({
           >
             <Text style={styles.scaleControlButtonText}>−</Text>
           </TouchableOpacity>
-          
+
           <View style={styles.scaleControlDisplay}>
             <Text style={styles.scaleControlText}>{Math.round(scale * 100)}%</Text>
           </View>
-          
+
           <TouchableOpacity
             style={[styles.scaleControlButton, scale >= maxScale && styles.scaleControlButtonDisabled]}
             onPress={(e) => {
@@ -592,11 +597,31 @@ export default function BattleScreen() {
   const [showPopularityModal, setShowPopularityModal] = useState(false);
   const [selectedPopularityRound, setSelectedPopularityRound] = useState<number | null>(null);
 
+  // ── Damage numbers state ──────────────────────────────────────────────────
+  const [activeDamageNumbers, setActiveDamageNumbers] = useState<{
+    id: string;
+    side: 'player' | 'bot';
+    value: number;
+    variant: DamageNumberVariant;
+  }[]>([]);
+
+  const spawnDamageNumber = useCallback(
+    (side: 'player' | 'bot', value: number, variant: DamageNumberVariant = 'damage') => {
+      const id = `${Date.now()}-${Math.random()}`;
+      setActiveDamageNumbers((prev) => [...prev, { id, side, value, variant }]);
+    },
+    []
+  );
+
+  const removeDamageNumber = useCallback((id: string) => {
+    setActiveDamageNumbers((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
   const [editMode, setEditMode] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
-  
+
   // ✅ التخطيط الافتراضي حسب الصورة
   const DEFAULT_LAYOUT = {
     playerCard: { x: -250, y: 0, scale: 1, minScale: 0.5, maxScale: 2 },
@@ -718,9 +743,19 @@ export default function BattleScreen() {
         }
       }
 
+      // Spawn floating damage numbers
+      if (lastRoundResult.botDamage > 0) {
+        const isCrit = lastRoundResult.playerElementAdvantage === 'strong';
+        spawnDamageNumber('bot', lastRoundResult.botDamage, isCrit ? 'critical' : 'damage');
+      }
+      if (lastRoundResult.playerDamage > 0) {
+        const isCrit = lastRoundResult.botElementAdvantage === 'strong';
+        spawnDamageNumber('player', lastRoundResult.playerDamage, isCrit ? 'critical' : 'damage');
+      }
+
       setPhase('waiting');
     }
-  }, [phase, lastRoundResult, resultOpacity, editMode]);
+  }, [phase, lastRoundResult, resultOpacity, editMode, spawnDamageNumber]);
 
   useEffect(() => {
     if (editMode) {
@@ -857,6 +892,8 @@ export default function BattleScreen() {
     ? lastRoundResult.botCard
     : currentBotCard;
 
+  // Derived: is this the final round? Used by BattleResultOverlay
+
   if (!displayPlayerCard || !displayBotCard) {
     return (
       <ScreenContainer>
@@ -920,7 +957,7 @@ export default function BattleScreen() {
       )}
 
       <View style={styles.battleContainer} pointerEvents={editMode ? 'auto' : 'box-none'}>
-        
+
         {editMode ? (
           <>
             <DraggableResizable
@@ -1055,7 +1092,29 @@ export default function BattleScreen() {
           </>
         ) : (
           <View style={styles.normalPlayContainer}>
-            
+
+            {/* ── BattleHUD: HP bars + score + round progress ── */}
+            <View style={styles.hudWrapper}>
+              <BattleHUD
+                playerScore={state.playerScore}
+                botScore={state.botScore}
+                maxScore={3}
+                currentRound={state.currentRound}
+                totalRounds={state.totalRounds}
+                turn={phase === 'waiting' ? 'player' : 'none'}
+              />
+            </View>
+
+            {/* ── Cinematic Result Overlay ── */}
+            <BattleResultOverlay
+              visible={showResult && phase === 'waiting'}
+              winner={lastRoundResult?.winner ?? null}
+              playerDamage={lastRoundResult?.playerDamage}
+              botDamage={lastRoundResult?.botDamage}
+              isLastRound={isGameOver}
+              onNext={handleNextRound}
+            />
+
             <View style={[
               styles.absolutePositionFixed,
               {
@@ -1065,22 +1124,47 @@ export default function BattleScreen() {
               }
             ]}>
               <Text style={styles.playerLabel}>👤 أنت</Text>
-              <Animated.View style={playerCardAnimatedStyle}>
-                <CardItem card={displayPlayerCard} size="large" />
-                {showPlayerEffect && displayPlayerCard && (
-                  <ElementEffect element={displayPlayerCard.element} style={styles.elementEffect} />
-                )}
-              </Animated.View>
-              
-              {showResult && lastRoundResult && (
-                <View style={styles.damageContainer}>
-                  <Text style={styles.damageText}>الضرر: {lastRoundResult.playerDamage}</Text>
-                  {lastRoundResult.playerElementAdvantage !== 'neutral' && (
-                    <Text style={[styles.advantageText, { color: getAdvantageColor(lastRoundResult.playerElementAdvantage) }]}>
-                      {ELEMENT_EMOJI[lastRoundResult.playerCard.element]} {getAdvantageText(lastRoundResult.playerElementAdvantage)}
-                    </Text>
+              <View style={{ position: 'relative' }}>
+                <Animated.View style={playerCardAnimatedStyle}>
+                  <CardItem
+                    card={displayPlayerCard}
+                    size="large"
+                    playEntranceAnimation={phase === 'showing'}
+                    entranceDelay={100}
+                  />
+                  {showPlayerEffect && displayPlayerCard && (
+                    <ElementEffect element={displayPlayerCard.element} isActive={showPlayerEffect} />
                   )}
-                </View>
+                </Animated.View>
+                {/* Floating damage numbers */}
+                {activeDamageNumbers
+                  .filter((n) => n.side === 'player')
+                  .map((n) => (
+                    <DamageNumber
+                      key={n.id}
+                      value={n.value}
+                      variant={n.variant}
+                      x={40}
+                      y={-20}
+                      onComplete={() => removeDamageNumber(n.id)}
+                    />
+                  ))}
+              </View>
+
+              {/* HP bar */}
+              <HealthBar
+                current={state.playerScore}
+                max={3}
+                label="❤️ الصحة"
+                width={140}
+                height={14}
+                direction="ltr"
+              />
+
+              {showResult && lastRoundResult && lastRoundResult.playerElementAdvantage !== 'neutral' && (
+                <Text style={[styles.advantageText, { color: getAdvantageColor(lastRoundResult.playerElementAdvantage) }]}>
+                  {ELEMENT_EMOJI[lastRoundResult.playerCard.element]} {getAdvantageText(lastRoundResult.playerElementAdvantage)}
+                </Text>
               )}
             </View>
 
@@ -1093,22 +1177,47 @@ export default function BattleScreen() {
               }
             ]}>
               <Text style={styles.playerLabel}>🤖 البوت</Text>
-              <Animated.View style={botCardAnimatedStyle}>
-                <CardItem card={displayBotCard} size="large" />
-                {showBotEffect && displayBotCard && (
-                  <ElementEffect element={displayBotCard.element} style={styles.elementEffect} />
-                )}
-              </Animated.View>
-              
-              {showResult && lastRoundResult && (
-                <View style={styles.damageContainer}>
-                  <Text style={styles.damageText}>الضرر: {lastRoundResult.botDamage}</Text>
-                  {lastRoundResult.botElementAdvantage !== 'neutral' && (
-                    <Text style={[styles.advantageText, { color: getAdvantageColor(lastRoundResult.botElementAdvantage) }]}>
-                      {ELEMENT_EMOJI[lastRoundResult.botCard.element]} {getAdvantageText(lastRoundResult.botElementAdvantage)}
-                    </Text>
+              <View style={{ position: 'relative' }}>
+                <Animated.View style={botCardAnimatedStyle}>
+                  <CardItem
+                    card={displayBotCard}
+                    size="large"
+                    playEntranceAnimation={phase === 'showing'}
+                    entranceDelay={300}
+                  />
+                  {showBotEffect && displayBotCard && (
+                    <ElementEffect element={displayBotCard.element} isActive={showBotEffect} />
                   )}
-                </View>
+                </Animated.View>
+                {/* Floating damage numbers */}
+                {activeDamageNumbers
+                  .filter((n) => n.side === 'bot')
+                  .map((n) => (
+                    <DamageNumber
+                      key={n.id}
+                      value={n.value}
+                      variant={n.variant}
+                      x={40}
+                      y={-20}
+                      onComplete={() => removeDamageNumber(n.id)}
+                    />
+                  ))}
+              </View>
+
+              {/* HP bar */}
+              <HealthBar
+                current={state.botScore}
+                max={3}
+                label="❤️ الصحة"
+                width={140}
+                height={14}
+                direction="ltr"
+              />
+
+              {showResult && lastRoundResult && lastRoundResult.botElementAdvantage !== 'neutral' && (
+                <Text style={[styles.advantageText, { color: getAdvantageColor(lastRoundResult.botElementAdvantage) }]}>
+                  {ELEMENT_EMOJI[lastRoundResult.botCard.element]} {getAdvantageText(lastRoundResult.botElementAdvantage)}
+                </Text>
               )}
             </View>
 
@@ -1359,6 +1468,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 0,
+  },
+
+  hudWrapper: {
+    position: 'absolute',
+    top: 50,
+    left: 12,
+    right: 12,
+    zIndex: 50,
   },
 
   pageBorders: {

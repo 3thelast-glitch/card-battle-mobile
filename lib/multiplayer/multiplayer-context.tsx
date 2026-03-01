@@ -1,9 +1,21 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react';
+import { Alert } from 'react-native';
 import { MultiplayerWebSocketClient, GameMessage } from './websocket-client';
 import { Card } from '../game/types';
 import Constants from 'expo-constants';
 
-// أنواع حالة اللعب الجماعي
+// ─── State ────────────────────────────────────────────────────────────────────
+
+export interface RoundResult {
+  roundIndex: number;
+  p1Card: any;
+  p2Card: any;
+  winner: 'player1' | 'player2' | 'draw';
+  p1Score: number;
+  p2Score: number;
+  advantage: 'element' | 'attack' | 'draw';
+}
+
 interface MultiplayerState {
   isConnected: boolean;
   roomId: string | null;
@@ -17,12 +29,18 @@ interface MultiplayerState {
   playerCards: Card[];
   opponentCards: Card[];
   currentRound: number;
+  totalRounds: number;
   playerScore: number;
   opponentScore: number;
-  status: 'idle' | 'waiting' | 'ready' | 'playing' | 'finished';
+  opponentRevealedThisRound: boolean;
+  lastRoundResult: RoundResult | null;
+  gameOverWinner: 'player' | 'opponent' | 'draw' | null;
+  status: 'idle' | 'waiting' | 'ready' | 'playing' | 'revealing' | 'result' | 'finished';
+  reconnectGraceSeconds: number;
 }
 
-// أنواع الإجراءات
+// ─── Actions ──────────────────────────────────────────────────────────────────
+
 type MultiplayerAction =
   | { type: 'SET_CONNECTED'; payload: boolean }
   | { type: 'SET_ROOM'; payload: { roomId: string; isHost: boolean } }
@@ -30,14 +48,19 @@ type MultiplayerAction =
   | { type: 'SET_PLAYER_READY'; payload: boolean }
   | { type: 'SET_OPPONENT_READY'; payload: boolean }
   | { type: 'SET_PLAYER_CARDS'; payload: Card[] }
-  | { type: 'SET_OPPONENT_CARDS'; payload: Card[] }
-  | { type: 'START_BATTLE' }
+  | { type: 'START_BATTLE'; payload: { totalRounds: number; p1Score: number; p2Score: number; isHost: boolean; p1Cards: Card[]; p2Cards: Card[] } }
+  | { type: 'OPPONENT_REVEALED' }
+  | { type: 'ROUND_RESULT'; payload: RoundResult }
   | { type: 'NEXT_ROUND' }
-  | { type: 'UPDATE_SCORE'; payload: { playerScore: number; opponentScore: number } }
+  | { type: 'GAME_OVER'; payload: { winner: 'player1' | 'player2' | 'draw'; p1Score: number; p2Score: number } }
+  | { type: 'OPPONENT_DISCONNECTED'; payload: { grace: number } }
+  | { type: 'TICK_GRACE' }
+  | { type: 'OPPONENT_RECONNECTED' }
   | { type: 'SET_STATUS'; payload: MultiplayerState['status'] }
   | { type: 'RESET' };
 
-// الحالة الأولية
+// ─── Initial State ────────────────────────────────────────────────────────────
+
 const initialState: MultiplayerState = {
   isConnected: false,
   roomId: null,
@@ -51,69 +74,117 @@ const initialState: MultiplayerState = {
   playerCards: [],
   opponentCards: [],
   currentRound: 0,
-  playerScore: 0,
-  opponentScore: 0,
+  totalRounds: 0,
+  playerScore: 3,
+  opponentScore: 3,
+  opponentRevealedThisRound: false,
+  lastRoundResult: null,
+  gameOverWinner: null,
   status: 'idle',
+  reconnectGraceSeconds: 0,
 };
 
-// المخفض
+// ─── Reducer ──────────────────────────────────────────────────────────────────
+
 function multiplayerReducer(state: MultiplayerState, action: MultiplayerAction): MultiplayerState {
   switch (action.type) {
     case 'SET_CONNECTED':
       return { ...state, isConnected: action.payload };
-      
+
     case 'SET_ROOM':
-      return {
-        ...state,
-        roomId: action.payload.roomId,
-        isHost: action.payload.isHost,
-        status: 'waiting',
-      };
-      
+      return { ...state, roomId: action.payload.roomId, isHost: action.payload.isHost, status: 'waiting' };
+
     case 'SET_OPPONENT':
-      return {
-        ...state,
-        opponentId: action.payload.opponentId,
-        opponentName: action.payload.opponentName,
-      };
-      
+      return { ...state, opponentId: action.payload.opponentId, opponentName: action.payload.opponentName };
+
     case 'SET_PLAYER_READY':
       return { ...state, isPlayerReady: action.payload };
-      
+
     case 'SET_OPPONENT_READY':
       return { ...state, isOpponentReady: action.payload };
-      
+
     case 'SET_PLAYER_CARDS':
       return { ...state, playerCards: action.payload };
-      
-    case 'SET_OPPONENT_CARDS':
-      return { ...state, opponentCards: action.payload };
-      
-    case 'START_BATTLE':
-      return { ...state, status: 'playing', currentRound: 0 };
-      
-    case 'NEXT_ROUND':
-      return { ...state, currentRound: state.currentRound + 1 };
-      
-    case 'UPDATE_SCORE':
+
+    case 'START_BATTLE': {
+      const { totalRounds, p1Score, p2Score, isHost, p1Cards, p2Cards } = action.payload;
       return {
         ...state,
-        playerScore: action.payload.playerScore,
-        opponentScore: action.payload.opponentScore,
+        status: 'playing',
+        currentRound: 0,
+        totalRounds,
+        playerScore: isHost ? p1Score : p2Score,
+        opponentScore: isHost ? p2Score : p1Score,
+        playerCards: isHost ? p1Cards : p2Cards,
+        opponentCards: isHost ? p2Cards : p1Cards,
+        opponentRevealedThisRound: false,
+        lastRoundResult: null,
       };
-      
+    }
+
+    case 'OPPONENT_REVEALED':
+      return { ...state, opponentRevealedThisRound: true };
+
+    case 'ROUND_RESULT': {
+      const r = action.payload;
+      const playerIsP1 = state.isHost;
+      const playerScore = playerIsP1 ? r.p1Score : r.p2Score;
+      const opponentScore = playerIsP1 ? r.p2Score : r.p1Score;
+      return {
+        ...state,
+        lastRoundResult: r,
+        playerScore,
+        opponentScore,
+        status: 'result',
+        opponentRevealedThisRound: false,
+      };
+    }
+
+    case 'NEXT_ROUND':
+      return {
+        ...state,
+        currentRound: state.currentRound + 1,
+        status: 'playing',
+        lastRoundResult: null,
+        opponentRevealedThisRound: false,
+      };
+
+    case 'GAME_OVER': {
+      const { winner, p1Score, p2Score } = action.payload;
+      const myWinner = state.isHost
+        ? winner === 'player1' ? 'player' : winner === 'player2' ? 'opponent' : 'draw'
+        : winner === 'player2' ? 'player' : winner === 'player1' ? 'opponent' : 'draw';
+      return {
+        ...state,
+        status: 'finished',
+        gameOverWinner: myWinner as any,
+        playerScore: state.isHost ? p1Score : p2Score,
+        opponentScore: state.isHost ? p2Score : p1Score,
+      };
+    }
+
+    case 'OPPONENT_DISCONNECTED':
+      return { ...state, reconnectGraceSeconds: action.payload.grace };
+
+    case 'TICK_GRACE':
+      return { ...state, reconnectGraceSeconds: Math.max(0, state.reconnectGraceSeconds - 1) };
+
+    case 'OPPONENT_RECONNECTED':
+      return { ...state, reconnectGraceSeconds: 0 };
+
     case 'SET_STATUS':
       return { ...state, status: action.payload };
-      
+
     case 'RESET':
       return { ...initialState, playerId: state.playerId, playerName: state.playerName };
-      
+
     default:
       return state;
   }
 }
 
-// السياق
+// ─── Context ──────────────────────────────────────────────────────────────────
+
 interface MultiplayerContextType {
   state: MultiplayerState;
   wsClient: MultiplayerWebSocketClient | null;
@@ -125,264 +196,237 @@ interface MultiplayerContextType {
   setPlayerCards: (cards: Card[], rounds: number) => void;
   setPlayerReady: (isReady: boolean) => void;
   revealCard: (roundIndex: number, card: Card) => void;
+  advanceToNextRound: () => void;
 }
 
 const MultiplayerContext = createContext<MultiplayerContextType | undefined>(undefined);
 
-// المزود
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
 export function MultiplayerProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(multiplayerReducer, {
     ...initialState,
     playerId: generatePlayerId(),
   });
-  
   const wsClientRef = useRef<MultiplayerWebSocketClient | null>(null);
-  
-  // الحصول على URL الخادم
+  const graceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const getServerUrl = () => {
-    const apiUrl = Constants.expoConfig?.extra?.apiBaseUrl || 'http://localhost:3000';
-    const wsUrl = apiUrl.replace(/^http/, 'ws') + '/multiplayer';
-    return wsUrl;
+    const apiUrl = Constants.expoConfig?.extra?.apiBaseUrl || 'http://localhost:3001';
+    return apiUrl.replace(/^http/, 'ws') + '/multiplayer';
   };
-  
-  // الاتصال بالخادم
-  const connect = async () => {
-    if (wsClientRef.current?.isConnected()) {
-      return;
-    }
-    
+
+  const connect = useCallback(async () => {
+    if (wsClientRef.current?.isConnected()) return;
     const serverUrl = getServerUrl();
     wsClientRef.current = new MultiplayerWebSocketClient(serverUrl);
-    
-    // إضافة معالج الرسائل
     wsClientRef.current.onMessage(handleMessage);
-    
     try {
       await wsClientRef.current.connect();
       dispatch({ type: 'SET_CONNECTED', payload: true });
-    } catch (error) {
-      console.error('[Multiplayer] Connection failed:', error);
+    } catch {
       dispatch({ type: 'SET_CONNECTED', payload: false });
+      throw new Error('Connection failed');
     }
-  };
-  
-  // قطع الاتصال
-  const disconnect = () => {
-    if (wsClientRef.current) {
-      wsClientRef.current.disconnect();
-      wsClientRef.current = null;
-    }
+  }, []);
+
+  const disconnect = useCallback(() => {
+    wsClientRef.current?.disconnect();
+    wsClientRef.current = null;
     dispatch({ type: 'SET_CONNECTED', payload: false });
-  };
-  
-  // معالجة الرسائل الواردة
-  const handleMessage = (message: GameMessage) => {
+  }, []);
+
+  // ─── Message Handler ───────────────────────────────────────────────────────
+
+  const handleMessage = useCallback((message: GameMessage) => {
     const { type, payload } = message;
-    
+
     switch (type) {
       case 'ROOM_CREATED':
-        dispatch({
-          type: 'SET_ROOM',
-          payload: { roomId: payload.roomId, isHost: true },
-        });
+        dispatch({ type: 'SET_ROOM', payload: { roomId: payload.roomId, isHost: true } });
         break;
-        
+
       case 'ROOM_JOINED':
-        dispatch({
-          type: 'SET_ROOM',
-          payload: { roomId: payload.roomId, isHost: false },
-        });
+        dispatch({ type: 'SET_ROOM', payload: { roomId: payload.roomId, isHost: false } });
         if (payload.player1) {
-          dispatch({
-            type: 'SET_OPPONENT',
-            payload: {
-              opponentId: payload.player1.id,
-              opponentName: payload.player1.name,
-            },
-          });
+          dispatch({ type: 'SET_OPPONENT', payload: { opponentId: payload.player1.id, opponentName: payload.player1.name } });
         }
         break;
-        
+
       case 'PLAYER_JOINED':
-        dispatch({
-          type: 'SET_OPPONENT',
-          payload: {
-            opponentId: payload.player.id,
-            opponentName: payload.player.name,
-          },
-        });
+        dispatch({ type: 'SET_OPPONENT', payload: { opponentId: payload.player.id, opponentName: payload.player.name } });
         break;
-        
+
       case 'OPPONENT_READY':
         dispatch({ type: 'SET_OPPONENT_READY', payload: payload.isReady });
         break;
-        
-      case 'BATTLE_START':
-        dispatch({ type: 'START_BATTLE' });
-        // تحديث بطاقات اللاعبين
-        const isPlayer1 = payload.player1.id === state.playerId;
-        if (isPlayer1) {
-          dispatch({ type: 'SET_PLAYER_CARDS', payload: payload.player1.cards });
-          dispatch({ type: 'SET_OPPONENT_CARDS', payload: payload.player2.cards });
-        } else {
-          dispatch({ type: 'SET_PLAYER_CARDS', payload: payload.player2.cards });
-          dispatch({ type: 'SET_OPPONENT_CARDS', payload: payload.player1.cards });
+
+      case 'BATTLE_START': {
+        // Cannot read state.playerId inside handleMessage — use pendingBattleStart
+        // A useEffect below reads state.playerId and dispatches START_BATTLE
+        setPendingBattleStart(message.payload);
+        break;
+      }
+
+      case 'OPPONENT_CARD_REVEALED':
+        dispatch({ type: 'OPPONENT_REVEALED' });
+        break;
+
+      case 'ROUND_RESULT':
+        dispatch({ type: 'ROUND_RESULT', payload: payload as RoundResult });
+        break;
+
+      case 'GAME_OVER':
+        dispatch({ type: 'GAME_OVER', payload });
+        break;
+
+      case 'OPPONENT_DISCONNECTED':
+        dispatch({ type: 'OPPONENT_DISCONNECTED', payload: { grace: payload.grace ?? 30 } });
+        // Start ticking countdown
+        if (graceTimerRef.current) clearInterval(graceTimerRef.current);
+        graceTimerRef.current = setInterval(() => {
+          dispatch({ type: 'TICK_GRACE' });
+        }, 1000);
+        break;
+
+      case 'OPPONENT_RECONNECTED':
+        dispatch({ type: 'OPPONENT_RECONNECTED' });
+        if (graceTimerRef.current) {
+          clearInterval(graceTimerRef.current);
+          graceTimerRef.current = null;
         }
         break;
-        
-      case 'OPPONENT_CARD_REVEALED':
-        // معالجة كشف بطاقة الخصم
+
+      case 'OPPONENT_LEFT_PERMANENTLY':
+        if (graceTimerRef.current) {
+          clearInterval(graceTimerRef.current);
+          graceTimerRef.current = null;
+        }
+        Alert.alert('المنافس غادر', 'غادر خصمك اللعبة. أنت الفائز!');
+        dispatch({ type: 'GAME_OVER', payload: { winner: 'player2', p1Score: 0, p2Score: 3 } });
         break;
-        
+
+      case 'RECONNECTED':
+        dispatch({ type: 'SET_CONNECTED', payload: true });
+        break;
+
       case 'PLAYER_LEFT':
-      case 'OPPONENT_DISCONNECTED':
-        dispatch({ type: 'SET_STATUS', payload: 'idle' });
-        // يمكن إضافة إشعار للمستخدم
-        break;
-        
       case 'ERROR':
-        console.error('[Multiplayer] Server error:', payload.error);
+        console.warn('[Multiplayer]', type, payload);
         break;
     }
-  };
-  
-  // إنشاء غرفة
-  const createRoom = (playerName: string) => {
-    if (!wsClientRef.current?.isConnected()) {
-      console.error('[Multiplayer] Not connected to server');
-      return;
-    }
-    
-    wsClientRef.current.send({
-      type: 'CREATE_ROOM',
+  }, []);
+
+  // ─── BATTLE_START fix: re-dispatch with correct isHost ───────────────────
+
+  const [pendingBattleStart, setPendingBattleStart] = React.useState<any>(null);
+
+  useEffect(() => {
+    if (!pendingBattleStart) return;
+    const isHost = state.playerId === pendingBattleStart.player1.id;
+    dispatch({
+      type: 'START_BATTLE',
       payload: {
-        playerId: state.playerId,
-        playerName,
+        totalRounds: pendingBattleStart.totalRounds,
+        p1Score: pendingBattleStart.p1Score,
+        p2Score: pendingBattleStart.p2Score,
+        isHost,
+        p1Cards: pendingBattleStart.player1.cards ?? [],
+        p2Cards: pendingBattleStart.player2.cards ?? [],
       },
     });
-  };
-  
-  // الانضمام لغرفة
-  const joinRoom = (roomId: string, playerName: string) => {
-    if (!wsClientRef.current?.isConnected()) {
-      console.error('[Multiplayer] Not connected to server');
+    setPendingBattleStart(null);
+  }, [pendingBattleStart]);
+
+  // Override handleMessage to use pendingBattleStart for BATTLE_START
+  const handleMessageWithBattle = useCallback((message: GameMessage) => {
+    if (message.type === 'BATTLE_START') {
+      setPendingBattleStart(message.payload);
       return;
     }
-    
-    wsClientRef.current.send({
-      type: 'JOIN_ROOM',
-      payload: {
-        roomId,
-        playerId: state.playerId,
-        playerName,
-      },
-    });
-  };
-  
-  // مغادرة الغرفة
-  const leaveRoom = () => {
-    if (!wsClientRef.current?.isConnected()) {
-      return;
-    }
-    
-    wsClientRef.current.send({
-      type: 'LEAVE_ROOM',
-      payload: {
-        playerId: state.playerId,
-      },
-    });
-    
+    handleMessage(message);
+  }, [handleMessage]);
+
+  // ─── Actions ───────────────────────────────────────────────────────────────
+
+  const send = useCallback((msg: GameMessage) => {
+    wsClientRef.current?.send(msg);
+  }, []);
+
+  const createRoom = useCallback((playerName: string) => {
+    dispatch({ type: 'SET_PLAYER_READY', payload: false });
+    send({ type: 'CREATE_ROOM', payload: { playerId: state.playerId, playerName } });
+  }, [state.playerId, send]);
+
+  const joinRoom = useCallback((roomId: string, playerName: string) => {
+    send({ type: 'JOIN_ROOM', payload: { roomId, playerId: state.playerId, playerName } });
+  }, [state.playerId, send]);
+
+  const leaveRoom = useCallback(() => {
+    send({ type: 'LEAVE_ROOM', payload: { playerId: state.playerId } });
     dispatch({ type: 'RESET' });
-  };
-  
-  // تحديد بطاقات اللاعب
-  const setPlayerCards = (cards: Card[], rounds: number) => {
-    if (!wsClientRef.current?.isConnected()) {
-      return;
-    }
-    
+  }, [state.playerId, send]);
+
+  const setPlayerCards = useCallback((cards: Card[], rounds: number) => {
     dispatch({ type: 'SET_PLAYER_CARDS', payload: cards });
-    
-    wsClientRef.current.send({
-      type: 'SET_CARDS',
-      payload: {
-        playerId: state.playerId,
-        cards,
-        rounds,
-      },
-    });
-  };
-  
-  // تحديد جاهزية اللاعب
-  const setPlayerReady = (isReady: boolean) => {
-    if (!wsClientRef.current?.isConnected()) {
-      return;
-    }
-    
+    send({ type: 'SET_CARDS', payload: { playerId: state.playerId, cards, rounds } });
+  }, [state.playerId, send]);
+
+  const setPlayerReady = useCallback((isReady: boolean) => {
     dispatch({ type: 'SET_PLAYER_READY', payload: isReady });
-    
-    wsClientRef.current.send({
-      type: 'PLAYER_READY',
-      payload: {
-        playerId: state.playerId,
-        isReady,
-      },
-    });
-  };
-  
-  // كشف البطاقة
-  const revealCard = (roundIndex: number, card: Card) => {
-    if (!wsClientRef.current?.isConnected()) {
-      return;
+    send({ type: 'PLAYER_READY', payload: { playerId: state.playerId, isReady } });
+  }, [state.playerId, send]);
+
+  const revealCard = useCallback((roundIndex: number, card: Card) => {
+    dispatch({ type: 'SET_STATUS', payload: 'revealing' });
+    send({ type: 'REVEAL_CARD', payload: { playerId: state.playerId, roundIndex, card } });
+  }, [state.playerId, send]);
+
+  const advanceToNextRound = useCallback(() => {
+    dispatch({ type: 'NEXT_ROUND' });
+  }, []);
+
+  // ─── Setup onMessage with battle handler ────────────────────────────────────
+
+  useEffect(() => {
+    if (wsClientRef.current) {
+      wsClientRef.current.onMessage(handleMessageWithBattle);
     }
-    
-    wsClientRef.current.send({
-      type: 'REVEAL_CARD',
-      payload: {
-        playerId: state.playerId,
-        roundIndex,
-        card,
-      },
-    });
-  };
-  
-  // تنظيف عند إلغاء التحميل
+  }, [handleMessageWithBattle]);
+
+  // Cleanup
   useEffect(() => {
     return () => {
       disconnect();
+      if (graceTimerRef.current) clearInterval(graceTimerRef.current);
     };
   }, []);
-  
-  const value: MultiplayerContextType = {
-    state,
-    wsClient: wsClientRef.current,
-    connect,
-    disconnect,
-    createRoom,
-    joinRoom,
-    leaveRoom,
-    setPlayerCards,
-    setPlayerReady,
-    revealCard,
-  };
-  
+
   return (
-    <MultiplayerContext.Provider value={value}>
+    <MultiplayerContext.Provider value={{
+      state,
+      wsClient: wsClientRef.current,
+      connect,
+      disconnect,
+      createRoom,
+      joinRoom,
+      leaveRoom,
+      setPlayerCards,
+      setPlayerReady,
+      revealCard,
+      advanceToNextRound,
+    }}>
       {children}
     </MultiplayerContext.Provider>
   );
 }
 
-// Hook للوصول للسياق
 export function useMultiplayer() {
-  const context = useContext(MultiplayerContext);
-  if (!context) {
-    throw new Error('useMultiplayer must be used within MultiplayerProvider');
-  }
-  return context;
+  const ctx = useContext(MultiplayerContext);
+  if (!ctx) throw new Error('useMultiplayer must be within MultiplayerProvider');
+  return ctx;
 }
 
-// دالة مساعدة لتوليد معرف اللاعب
 function generatePlayerId(): string {
   return `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }

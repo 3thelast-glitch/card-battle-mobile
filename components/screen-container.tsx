@@ -4,6 +4,8 @@ import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 import { cn } from "@/lib/utils";
 
 export interface ScreenContainerProps extends ViewProps {
+  /** React children */
+  children?: React.ReactNode;
   /**
    * SafeArea edges to apply. Defaults to ["top", "left", "right"].
    * Bottom is typically handled by Tab Bar.
