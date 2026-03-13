@@ -200,7 +200,6 @@ export function CardItem({
               <View style={styles.statsRow}>
                 <StatBadge icon="⚔️" value={card.attack} size={preset.statFontSize} />
                 <StatBadge icon="🛡️" value={card.defense} size={preset.statFontSize} />
-                <StatBadge icon="❤️" value={card.hp} size={preset.statFontSize} />
               </View>
 
               <Text

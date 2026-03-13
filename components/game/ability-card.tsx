@@ -1,7 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/ui/ThemedText';
 import * as LucideIcons from 'lucide-react-native';
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withRepeat,
+    withSequence,
+    withTiming,
+    Easing,
+} from 'react-native-reanimated';
 
 export interface AbilityData {
     id: string | number;
@@ -16,11 +24,16 @@ export interface AbilityData {
 
 interface Props {
     ability: AbilityData;
+    showActionButtons?: boolean;
 }
 
-// Static ability art map — Metro bundler requires explicit require() paths
+// ─── Card dimensions ──────────────────────────────────────────────────────────
+const CARD_W = 220;
+const CARD_H = 330;
+
+// ─── Static ability art map — Metro bundler requires explicit require() paths ─
 export const ABILITY_IMAGES: Record<string, any> = {
-    'default':                      require('../../assets/abilities/Add_Element_Art.png'), // fallback reuses first art until a true default.png is added
+    'default':                      require('../../assets/abilities/Add_Element_Art.png'),
     'Add_Element_Art':              require('../../assets/abilities/Add_Element_Art.png'),
     'Arise_Art':                    require('../../assets/abilities/Arise_Art.png'),
     'Avatar_Art':                   require('../../assets/abilities/Avatar_Art.png'),
@@ -71,14 +84,55 @@ export const ABILITY_IMAGES: Record<string, any> = {
     'Wipe_Art':                     require('../../assets/abilities/Wipe_Art.png'),
 };
 
-export function AbilityCard({ ability }: Props) {
+// ─── Rarity theme presets ─────────────────────────────────────────────────────
+const RARITY_THEMES: Record<string, {
+    primary: string;
+    glow: string;
+    border: string;
+    badgeBg: string;
+    label: string;
+}> = {
+    Common: {
+        primary: '#10b981',
+        glow: '#10b981',
+        border: 'rgba(16,185,129,0.5)',
+        badgeBg: 'rgba(16,185,129,0.25)',
+        label: 'COMMON',
+    },
+    Rare: {
+        primary: '#3b82f6',
+        glow: '#60a5fa',
+        border: 'rgba(59,130,246,0.5)',
+        badgeBg: 'rgba(59,130,246,0.25)',
+        label: 'RARE',
+    },
+    Epic: {
+        primary: '#a855f7',
+        glow: '#c084fc',
+        border: 'rgba(168,85,247,0.5)',
+        badgeBg: 'rgba(168,85,247,0.25)',
+        label: 'EPIC',
+    },
+    Legendary: {
+        primary: '#f59e0b',
+        glow: '#fcd34d',
+        border: 'rgba(245,158,11,0.6)',
+        badgeBg: 'rgba(245,158,11,0.25)',
+        label: 'LEGENDARY',
+    },
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function AbilityCard({ ability, showActionButtons = true }: Props) {
     const IconComponent = ability.icon;
 
-    // State for dev testing
+    // Dev-testing state
     const [localRarity, setLocalRarity] = useState(ability.rarity);
     const [isDisabled, setIsDisabled] = useState(ability.isActive === false);
 
     const isLegendary = localRarity === 'Legendary';
+    const theme = RARITY_THEMES[localRarity] ?? RARITY_THEMES.Common;
 
     const cycleRarity = () => {
         const rarities = ['Common', 'Rare', 'Epic', 'Legendary'];
@@ -86,207 +140,389 @@ export function AbilityCard({ ability }: Props) {
         setLocalRarity(rarities[(currentIndex + 1) % rarities.length]);
     };
 
-    // Rarity Colors Configuration
-    let rarityConfig = {
-        badgeBg: 'bg-emerald-500/50',
-        badgeText: 'text-emerald-400',
-        border: 'border-emerald-500',
-        iconColor: '#10b981',
-    };
-
-    if (localRarity === 'Rare') {
-        rarityConfig = {
-            badgeBg: 'bg-blue-500/50',
-            badgeText: 'text-blue-400',
-            border: 'border-blue-500',
-            iconColor: '#3b82f6',
-        };
-    } else if (localRarity === 'Epic') {
-        rarityConfig = {
-            badgeBg: 'bg-purple-500/50',
-            badgeText: 'text-purple-400',
-            border: 'border-purple-500',
-            iconColor: '#a855f7',
-        };
-    } else if (localRarity === 'Legendary') {
-        rarityConfig = {
-            badgeBg: 'bg-amber-500/50',
-            badgeText: 'text-amber-400',
-            border: 'border-amber-500',
-            iconColor: '#f59e0b',
-        };
+    // Resolve local artwork based on ability English name
+    // IMPORTANT: ABILITY_IMAGES dictionary already has "_Art" suffix in keys
+    // Format: "LogicalEncounter" -> "LogicalEncounter_Art"
+    // NOTE: If you see repeated images, add missing abilities to ABILITY_IMAGES dictionary
+    const formattedName = ability.nameEn.replaceAll(' ', '_') + '_Art';
+    
+    // Debug: Warn if image is missing from dictionary
+    if (!ABILITY_IMAGES[formattedName]) {
+        console.warn(`[Missing Art] Please add the image for: "${ability.nameEn}". Expected dictionary key: "${formattedName}"`);
     }
+    
+    const imageSource = ABILITY_IMAGES[formattedName] || ABILITY_IMAGES['default'];
+
+    // ── Pulsing outer glow animation ──
+    const glowOpacity = useSharedValue(0.4);
+    useEffect(() => {
+        const peak = isLegendary ? 0.9 : localRarity === 'Epic' ? 0.7 : localRarity === 'Rare' ? 0.55 : 0.4;
+        const base = peak * 0.5;
+        glowOpacity.value = withRepeat(
+            withSequence(
+                withTiming(peak, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
+                withTiming(base, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
+            ),
+            -1,
+            true,
+        );
+    }, [localRarity]);
+
+    const animatedGlow = useAnimatedStyle(() => ({
+        shadowOpacity: glowOpacity.value,
+    }));
 
     return (
-        <View
-            className={`relative justify-between items-center bg-slate-900 overflow-hidden rounded-xl border-2 ${rarityConfig.border}`}
+        <Animated.View
             style={[
-                styles.cardContainer,
+                styles.outerShell,
                 {
-                    width: 160,
-                    height: 208,
-                    shadowColor: rarityConfig.iconColor,
-                    borderColor: rarityConfig.iconColor
+                    shadowColor: theme.glow,
+                    shadowRadius: isLegendary ? 28 : 16,
                 },
-                isLegendary && { borderWidth: 3 },
+                animatedGlow,
                 isDisabled && { opacity: 0.5 },
             ]}
         >
-            {/* ─── DEV ADMIN CONTROLS ─── */}
-            {__DEV__ && (
-                <View className="absolute top-2 left-2 z-50 flex-row gap-1">
-                    <TouchableOpacity
-                        onPress={() => setIsDisabled(!isDisabled)}
-                        className={`w-5 h-5 rounded-full items-center justify-center border ${isDisabled ? 'bg-red-500/20 border-red-500/50' : 'bg-black/50 border-white/20'}`}
-                    >
-                        <LucideIcons.Power size={10} color={isDisabled ? '#ef4444' : '#fff'} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={cycleRarity}
-                        className="w-5 h-5 rounded-full items-center justify-center bg-black/50 border border-white/20"
-                    >
-                        <LucideIcons.RefreshCw size={10} color="#38bdf8" />
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            {/* ─── DEACTIVATED OVERLAY ─── */}
-            {isDisabled && (
-                <View className="absolute inset-0 z-40 items-center justify-center bg-black/20 rounded-xl">
-                    <View className="bg-red-600/90 px-3 py-1 rounded-lg border-2 border-red-400 shadow-xl" style={{ transform: [{ rotate: '-12deg' }] }}>
-                        <ThemedText className="text-white font-black tracking-widest text-[9px] shadow-sm">
-                            DEACTIVATED
-                        </ThemedText>
-                    </View>
-                </View>
-            )}
-
-            {/* Top Badge */}
-            <View className={`absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-black/50 z-20 ${rarityConfig.badgeBg}`}>
-                <ThemedText className={`text-[7px] uppercase font-bold tracking-wider ${rarityConfig.badgeText}`} style={{ color: rarityConfig.iconColor }}>
-                    {localRarity}
-                </ThemedText>
-            </View>
-
-            {/* ─── TOP HALF: Full-Bleed Image Container ─── */}
-            <View style={styles.imageContainer} className="w-full overflow-hidden rounded-t-xl">
+            <View
+                style={[
+                    styles.cardContainer,
+                    {
+                        borderColor: theme.border,
+                        borderWidth: isLegendary ? 2 : 1.5,
+                    },
+                ]}
+            >
+                {/* ═══════════════ 1. FULL-BLEED ARTWORK BACKGROUND ═══════════════ */}
                 <ImageBackground
-                    source={(() => {
-                        const formattedName = ability.nameEn.replaceAll(' ', '_') + '_Art';
-                        return ABILITY_IMAGES[formattedName] || ABILITY_IMAGES['default'];
-                    })()}
-                    style={styles.imageBackground}
-                    imageStyle={styles.imageStyle}
+                    source={imageSource}
+                    style={StyleSheet.absoluteFill}
+                    imageStyle={styles.artImage}
                     resizeMode="cover"
                 >
-                    {/* Dark gradient fade at the bottom */}
-                    <View style={styles.gradientOverlay} />
+                    {/* Legendary extra warm edge glow */}
+                    {isLegendary && <View style={styles.legendaryEdgeGlow} />}
+                </ImageBackground>
 
-                    {/* Legendary inner glow ring */}
-                    {isLegendary && (
-                        <View style={[styles.legendaryGlow, { borderColor: rarityConfig.iconColor }]} />
-                    )}
-
-                    {/* ─── Glowing Icon Overlay ─── */}
-                    <View style={styles.iconOverlay}>
-                        <View
+                {/* ═══════════════ 2. DEV ADMIN CONTROLS ═══════════════ */}
+                {showActionButtons && __DEV__ && (
+                    <View style={styles.devControls}>
+                        <TouchableOpacity
+                            onPress={() => setIsDisabled(!isDisabled)}
                             style={[
-                                styles.iconContainer,
-                                {
-                                    shadowColor: rarityConfig.iconColor,
-                                    shadowOpacity: 0.9,
-                                    shadowRadius: 16,
-                                    shadowOffset: { width: 0, height: 0 },
-                                    elevation: 12,
-                                }
+                                styles.devBtn,
+                                isDisabled && { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.5)' },
                             ]}
                         >
-                            {IconComponent ? (
-                                <IconComponent size={32} color="rgba(255,255,255,0.92)" strokeWidth={1.5} />
-                            ) : null}
+                            <LucideIcons.Power size={10} color={isDisabled ? '#ef4444' : '#fff'} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={cycleRarity} style={styles.devBtn}>
+                            <LucideIcons.RefreshCw size={10} color="#38bdf8" />
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {/* ═══════════════ 3. DEACTIVATED OVERLAY ═══════════════ */}
+                {isDisabled && (
+                    <View style={styles.disabledOverlay}>
+                        <View style={styles.disabledStamp}>
+                            <ThemedText style={styles.disabledText}>
+                                DEACTIVATED
+                            </ThemedText>
                         </View>
                     </View>
-                </ImageBackground>
+                )}
+
+                {/* ═══════════════ 5. TOP-RIGHT RARITY BADGE ═══════════════ */}
+                <View style={[styles.rarityBadge, { backgroundColor: theme.badgeBg, borderColor: theme.border }]}>
+                    <Text style={[styles.rarityText, { color: theme.primary }]}>
+                        {theme.label}
+                    </Text>
+                </View>
+
+                {/* ═══════════════ 6. CENTER TITLE PANEL (frosted glass) ═══════════════ */}
+                <View style={styles.titlePanel}>
+                    <View style={styles.titlePanelInner}>
+                        {/* English name */}
+                        <Text style={styles.nameEn} numberOfLines={1}>
+                            {ability.nameEn}
+                        </Text>
+                        {/* Arabic name */}
+                        <Text style={[styles.nameAr, { textShadowColor: theme.glow }]} numberOfLines={1}>
+                            {ability.nameAr}
+                        </Text>
+                        {/* Divider */}
+                        <View style={[styles.divider, { backgroundColor: theme.primary + '55' }]} />
+                        {/* Description */}
+                        <Text style={styles.description} numberOfLines={3}>
+                            {ability.description}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* ═══════════════ 7. BOTTOM ICON BAR (frosted glass) ═══════════════ */}
+                <View style={[styles.bottomBar, { borderTopColor: theme.border }]}>
+                    {/* Ability icon */}
+                    <View style={[styles.iconCircle, { backgroundColor: theme.primary + '33', borderColor: theme.primary + '77' }]}>
+                        {IconComponent ? (
+                            <IconComponent size={14} color={theme.primary} strokeWidth={2} />
+                        ) : null}
+                    </View>
+                    {/* Rarity label */}
+                    <Text style={[styles.bottomRarityLabel, { color: theme.primary }]}>
+                        {localRarity}
+                    </Text>
+                    {/* Decorative dots */}
+                    <View style={styles.bottomDots}>
+                        <View style={[styles.dot, { backgroundColor: theme.primary + '88' }]} />
+                        <View style={[styles.dot, { backgroundColor: theme.primary + '55' }]} />
+                        <View style={[styles.dot, { backgroundColor: theme.primary + '33' }]} />
+                    </View>
+                </View>
             </View>
-
-            {/* ─── BOTTOM INFO BOX ─── */}
-            <View className="w-full flex-1 bg-black/50 backdrop-blur-sm p-2 border-t border-white/10 z-10 flex flex-col items-center justify-center">
-                <ThemedText className="text-[9px] font-black uppercase leading-tight text-white text-center" numberOfLines={1}>
-                    {ability.nameEn}
-                </ThemedText>
-                <ThemedText className="text-[10px] font-bold text-amber-300 mt-0.5 text-center" numberOfLines={1}>
-                    {ability.nameAr}
-                </ThemedText>
-
-                {/* Subtle Divider */}
-                <View className="w-6 h-[1px] bg-white/20 my-1" />
-
-                <ThemedText className="text-[7px] text-slate-300 leading-tight mt-1 px-1 text-center" style={{ writingDirection: 'rtl' }} numberOfLines={2}>
-                    {ability.description}
-                </ThemedText>
-            </View>
-        </View>
+        </Animated.View>
     );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-    cardContainer: {
+    // ── Outer animated wrapper (shadow host) ──
+    outerShell: {
+        width: CARD_W,
+        height: CARD_H,
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 14,
-        elevation: 10,
+        elevation: 14,
     },
-    imageContainer: {
-        height: 104,
-        flexShrink: 0,
+
+    // ── Card boundary ──
+    cardContainer: {
+        flex: 1,
+        borderRadius: 20,
+        overflow: 'hidden',
+        backgroundColor: '#0a0a12',
     },
-    imageBackground: {
-        width: '100%',
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
+
+    // ── Full-bleed art ──
+    artImage: {
+        borderRadius: 20,
     },
-    imageStyle: {
-        width: '100%',
-        height: '100%',
-    },
-    gradientOverlay: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 50,
-        backgroundColor: 'rgba(2, 6, 23, 0.6)',
-    },
-    legendaryGlow: {
+
+    // ── Gradient overlays ──
+    topGradient: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        bottom: 0,
-        borderWidth: 2,
-        borderRadius: 10,
-        shadowColor: '#f59e0b',
-        shadowOpacity: 1,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 0 },
-        elevation: 12,
+        height: 80,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        // We simulate a gradient by using opacity on a dark band;
+        // for a true gradient, LinearGradient from expo-linear-gradient would be ideal
     },
-    iconOverlay: {
+    bottomGradient: {
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        // Half of (32px icon + 2*8px padding) ≈ 24px
-        transform: [{ translateX: -24 }, { translateY: -24 }],
-        zIndex: 10,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: CARD_H * 0.6,
+        backgroundColor: 'rgba(0,0,0,0.7)',
     },
-    iconContainer: {
+    centerVignette: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.15)',
+    },
+    legendaryEdgeGlow: {
+        ...StyleSheet.absoluteFillObject,
+        borderWidth: 2,
+        borderColor: 'rgba(245,158,11,0.35)',
+        borderRadius: 20,
+        shadowColor: '#f59e0b',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+
+    // ── Dev admin controls ──
+    devControls: {
+        position: 'absolute',
+        top: 36,
+        left: 10,
+        zIndex: 50,
+        flexDirection: 'row',
+        gap: 4,
+    },
+    devBtn: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 8,
-        borderRadius: 9999,
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+
+    // ── Disabled overlay ──
+    disabledOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+    },
+    disabledStamp: {
+        backgroundColor: 'rgba(220,38,38,0.9)',
+        paddingHorizontal: 14,
+        paddingVertical: 5,
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: '#f87171',
+        transform: [{ rotate: '-12deg' }],
+    },
+    disabledText: {
+        color: '#fff',
+        fontWeight: '900',
+        fontSize: 10,
+        letterSpacing: 3,
+        textTransform: 'uppercase',
+    },
+
+    // ── Top-left ID badge ──
+    idBadge: {
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        zIndex: 20,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.12)',
+    },
+    idText: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 9,
+        fontWeight: '700',
+        letterSpacing: 0.5,
+    },
+
+    // ── Top-right rarity badge ──
+    rarityBadge: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        zIndex: 20,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+        borderWidth: 1,
+    },
+    rarityText: {
+        fontSize: 8,
+        fontWeight: '800',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+    },
+
+    // ── Center title panel (frosted glass) ──
+    titlePanel: {
+        position: 'absolute',
+        bottom: 50,
+        left: 12,
+        right: 12,
+        zIndex: 15,
+    },
+    titlePanelInner: {
+        backgroundColor: 'rgba(6,3,18,0.72)',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        alignItems: 'center',
+        // Simulated backdrop-blur via dense bg; for true blur, use @react-native-community/blur
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.6,
+        shadowRadius: 10,
+        elevation: 6,
+    },
+    nameEn: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '900',
+        letterSpacing: 1.2,
+        textTransform: 'uppercase',
+        textAlign: 'center',
+        textShadowColor: 'rgba(0,0,0,0.9)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
+    },
+    nameAr: {
+        color: '#FFD700',
+        fontSize: 16,
+        fontWeight: '900',
+        textAlign: 'center',
+        marginTop: 3,
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 8,
+        letterSpacing: 0.5,
+    },
+    divider: {
+        width: 36,
+        height: 1.5,
+        borderRadius: 1,
+        marginVertical: 8,
+    },
+    description: {
+        color: 'rgba(203,213,225,0.85)',
+        fontSize: 10,
+        fontWeight: '500',
+        textAlign: 'center',
+        lineHeight: 15,
+        writingDirection: 'rtl',
+    },
+
+    // ── Bottom icon bar (frosted glass) ──
+    bottomBar: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 15,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(6,3,18,0.8)',
+        borderTopWidth: 1,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        gap: 8,
+    },
+    iconCircle: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    bottomRarityLabel: {
+        flex: 1,
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+    },
+    bottomDots: {
+        flexDirection: 'row',
+        gap: 3,
+        alignItems: 'center',
+    },
+    dot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
     },
 });

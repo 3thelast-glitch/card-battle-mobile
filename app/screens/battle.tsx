@@ -25,6 +25,7 @@ import { useLandscapeLayout, LAYOUT_PADDING, CARD_WIDTH_FACTOR } from '@/utils/l
 import { useGame } from '@/lib/game/game-context';
 import { ELEMENT_EMOJI, ElementAdvantage } from '@/lib/game/types';
 import { getAbilityNameAr, getAbilityNameOnly, getAbilityDescription } from '@/lib/game/ability-names';
+import { AbilityCard } from '@/components/game/ability-card';
 import PredictionModal from '@/app/components/modals/PredictionModal';
 import PopularityModal from '@/app/components/modals/PopularityModal';
 import {
@@ -1338,19 +1339,40 @@ export default function BattleScreen() {
               animationType="fade"
               onRequestClose={() => setIsAbilitiesModalOpen(false)}
             >
-              <View style={styles.abilitiesModalOverlay}>
-                <View style={styles.abilitiesModalContent}>
+              <TouchableOpacity
+                style={styles.abilitiesModalOverlay}
+                activeOpacity={1}
+                onPress={() => setIsAbilitiesModalOpen(false)}
+              >
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={(e) => e.stopPropagation()}
+                  style={styles.abilitiesModalContent}
+                >
+                  {/* Header row */}
                   <View style={styles.abilitiesModalHeader}>
                     <Text style={styles.abilitiesModalTitle}>القدرات المتاحة ⚡</Text>
-                    <TouchableOpacity onPress={() => setIsAbilitiesModalOpen(false)} style={styles.abilitiesModalCloseWrap}>
-                      <Text style={styles.abilitiesModalCloseButton}>✕</Text>
+                    <TouchableOpacity onPress={() => setIsAbilitiesModalOpen(false)} style={{ padding: 4 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 20 }}>✕</Text>
                     </TouchableOpacity>
                   </View>
-                  <ScrollView style={styles.abilitiesModalScroll} contentContainerStyle={{ padding: 16, gap: 12 }}>
-                    {state.playerAbilities.length === 0 ? (
-                      <Text style={{ color: '#94a3b8', textAlign: 'center' }}>لا توجد قدرات متاحة</Text>
-                    ) : (
-                      state.playerAbilities.map((ability, index) => {
+
+                  {/* Horizontal scrolling AbilityCards */}
+                  {state.playerAbilities.length === 0 ? (
+                    <Text style={{ color: '#94a3b8', textAlign: 'center', marginVertical: 24 }}>لا توجد قدرات متاحة</Text>
+                  ) : (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 12,
+                        paddingHorizontal: 8,
+                        paddingVertical: 8,
+                      }}
+                    >
+                      {state.playerAbilities.map((ability, index) => {
                         const isSealed = state.activeEffects.some(
                           (effect) =>
                             effect.kind === 'silenceAbilities' &&
@@ -1358,55 +1380,67 @@ export default function BattleScreen() {
                             effect.createdAtRound <= roundNumber &&
                             (effect.expiresAtRound === undefined || roundNumber <= effect.expiresAtRound)
                         );
+                        // Use ability.type directly as English name for image mapping
+                        // IMPORTANT: Ensure ABILITY_IMAGES dictionary includes keys matching these types
+                        const abilityNameEn = ability.type;
+                        const abilityNameAr = getAbilityNameAr(ability.type).split('(')[0].trim();
+                        const abilityDescription = getAbilityDescription(ability.type);
                         return (
-                          <TouchableOpacity
-                            key={index}
-                            style={[
-                              styles.abilityModalItem,
-                              (ability.used || phase !== 'action') ? styles.abilityModalItemUsed : styles.abilityModalItemActive
-                            ]}
-                            onPress={() => {
-                              if (ability.used || phase !== 'action') return;
-                              if (isSealed) {
-                                Alert.alert('القدرات مختومة', 'لا يمكنك تفعيل القدرات خلال مدة الختم.');
-                                return;
-                              }
-                              if (['LogicalEncounter', 'Eclipse', 'Trap', 'Pool'].includes(ability.type)) {
-                                if (upcomingRounds.length === 0) return;
-                                setPredictionSelections({});
-                                setPredictionAbilityType(ability.type as any);
+                          <View key={index} style={{ alignItems: 'center', justifyContent: 'center' }}>
+                            <TouchableOpacity
+                              onPress={() => {
+                                if (ability.used || phase !== 'action') return;
+                                if (isSealed) {
+                                  Alert.alert('القدرات مختومة', 'لا يمكنك تفعيل القدرات خلال مدة الختم.');
+                                  return;
+                                }
+                                if (['LogicalEncounter', 'Eclipse', 'Trap', 'Pool'].includes(ability.type)) {
+                                  if (upcomingRounds.length === 0) return;
+                                  setPredictionSelections({});
+                                  setPredictionAbilityType(ability.type as any);
+                                  setIsAbilitiesModalOpen(false);
+                                  setShowPredictionModal(true);
+                                  return;
+                                }
+                                if (['Popularity', 'Rescue', 'Penetration'].includes(ability.type)) {
+                                  if (remainingRounds.length === 0) return;
+                                  setSelectedPopularityRound(null);
+                                  setPopularityAbilityType(ability.type as any);
+                                  setIsAbilitiesModalOpen(false);
+                                  setShowPopularityModal(true);
+                                  return;
+                                }
+                                useAbility(ability.type);
                                 setIsAbilitiesModalOpen(false);
-                                setShowPredictionModal(true);
-                                return;
-                              }
-                              if (['Popularity', 'Rescue', 'Penetration'].includes(ability.type)) {
-                                if (remainingRounds.length === 0) return;
-                                setSelectedPopularityRound(null);
-                                setPopularityAbilityType(ability.type as any);
-                                setIsAbilitiesModalOpen(false);
-                                setShowPopularityModal(true);
-                                return;
-                              }
-                              useAbility(ability.type);
-                              setIsAbilitiesModalOpen(false);
-                              if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            }}
-                            disabled={ability.used || phase !== 'action'}
-                            activeOpacity={0.8}
-                          >
-                            <Text style={styles.abilityModalItemTitle}>
-                              {ability.used ? '✗ ' : '✓ '}{getAbilityNameOnly(ability.type)}
-                            </Text>
-                            <Text style={styles.abilityModalItemDesc}>
-                              {getAbilityDescription(ability.type)}
-                            </Text>
-                          </TouchableOpacity>
+                                if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              }}
+                              disabled={ability.used || phase !== 'action'}
+                              activeOpacity={0.9}
+                              style={{
+                                opacity: (ability.used || phase !== 'action') ? 0.5 : 1,
+                                transform: [{ scale: 0.85 }],
+                              }}
+                            >
+                              <AbilityCard
+                                ability={{
+                                  id: index,
+                                  nameEn: abilityNameEn,
+                                  nameAr: abilityNameAr,
+                                  description: abilityDescription,
+                                  icon: null,
+                                  rarity: 'Rare',
+                                  isActive: !ability.used && phase === 'action',
+                                }}
+                                showActionButtons={false}
+                              />
+                            </TouchableOpacity>
+                          </View>
                         );
-                      })
-                    )}
-                  </ScrollView>
-                </View>
-              </View>
+                      })}
+                    </ScrollView>
+                  )}
+                </TouchableOpacity>
+              </TouchableOpacity>
             </Modal>
             <PredictionModal
               visible={showPredictionModal}
@@ -2923,28 +2957,26 @@ const styles = StyleSheet.create({
 
   abilitiesModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   abilitiesModalContent: {
-    width: '90%',
-    maxWidth: 400,
-    maxHeight: '80%',
-    backgroundColor: '#1e293b',
+    width: '92%',
+    maxWidth: 800,
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(51, 65, 85, 0.8)',
     overflow: 'hidden',
+    padding: 16,
+    paddingBottom: 12,
   },
   abilitiesModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-    backgroundColor: '#0f172a',
+    marginBottom: 16,
   },
   abilitiesModalTitle: {
     fontSize: 18,

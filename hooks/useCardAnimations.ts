@@ -1,13 +1,5 @@
 /**
  * useCardAnimations — Reanimated v4 animation hooks for card interactions.
- *
- * Exports self-contained hooks:
- *  - useCardTapAnimation     → tap spring (scale + rotate)
- *  - useCardSummonAnimation  → entrance slide-up + scale peak
- *  - useCardAttackAnimation  → shake sequence
- *  - useGlowPulse            → infinite opacity + scale pulse
- *  - useCardHoverScale       → selected card hover scale
- *  - useDamageNumberAnim     → float-up + fade-out for damage numbers
  */
 
 import {
@@ -28,10 +20,6 @@ import { ANIM_DURATION, ANIM_VALUES, SPRING } from '@/constants/animationConfig'
 
 // ─── Tap ──────────────────────────────────────────────────────────────────────
 
-/**
- * Card tap: scale + rotate spring on press-in, spring back on press-out.
- * 60fps via Reanimated worklet.
- */
 export function useCardTapAnimation() {
     const scale = useSharedValue(1);
     const rotate = useSharedValue(0);
@@ -46,9 +34,7 @@ export function useCardTapAnimation() {
     const onPressIn = () => {
         scale.value = withSpring(ANIM_VALUES.TAP_SCALE, SPRING.TAP);
         rotate.value = withSpring(ANIM_VALUES.TAP_ROTATE, SPRING.TAP);
-        if (Platform.OS !== 'web') {
-            runOnJS(fireHaptic)('light');
-        }
+        if (Platform.OS !== 'web') runOnJS(fireHaptic)('light');
     };
 
     const onPressOut = () => {
@@ -61,13 +47,10 @@ export function useCardTapAnimation() {
 
 // ─── Summon ───────────────────────────────────────────────────────────────────
 
-/**
- * Card battle entrance: slides up from below, peaks at 1.25x then settles.
- */
 export function useCardSummonAnimation(delayMs = 0) {
-    const scale = useSharedValue(0);
-    const translateY = useSharedValue(60);
-    const opacity = useSharedValue(0);
+    const scale = useSharedValue(1);
+    const translateY = useSharedValue(0);
+    const opacity = useSharedValue(1);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [
@@ -100,9 +83,6 @@ export function useCardSummonAnimation(delayMs = 0) {
 
 // ─── Attack Shake ─────────────────────────────────────────────────────────────
 
-/**
- * Attack animation: rapid left-right shake sequence.
- */
 export function useCardAttackAnimation() {
     const translateX = useSharedValue(0);
 
@@ -113,9 +93,8 @@ export function useCardAttackAnimation() {
     const shake = (onDone?: () => void) => {
         const d = ANIM_VALUES.SHAKE;
         const t = ANIM_DURATION.ATTACK / 6;
-        if (Platform.OS !== 'web') {
-            runOnJS(fireHaptic)('medium');
-        }
+        if (Platform.OS !== 'web') runOnJS(fireHaptic)('medium');
+
         translateX.value = withSequence(
             withTiming(d, { duration: t }),
             withTiming(-d, { duration: t }),
@@ -133,10 +112,6 @@ export function useCardAttackAnimation() {
 
 // ─── Glow Pulse ───────────────────────────────────────────────────────────────
 
-/**
- * Infinite pulsing glow for Epic and Legendary cards.
- * Starts immediately on mount.
- */
 export function useGlowPulse() {
     const opacity = useSharedValue(0.5);
     const scale = useSharedValue(1);
@@ -169,9 +144,6 @@ export function useGlowPulse() {
 
 // ─── Hover Scale ──────────────────────────────────────────────────────────────
 
-/**
- * Smoothly scales card up when selected, back to 1 when deselected.
- */
 export function useCardHoverScale(selected: boolean) {
     const scale = useSharedValue(1);
 
@@ -188,10 +160,6 @@ export function useCardHoverScale(selected: boolean) {
 
 // ─── Damage Number ────────────────────────────────────────────────────────────
 
-/**
- * Float-up + pop-in + fade-out for damage numbers.
- * Call play() once after mounting.
- */
 export function useDamageNumberAnim(onComplete?: () => void) {
     const translateY = useSharedValue(0);
     const opacity = useSharedValue(0);

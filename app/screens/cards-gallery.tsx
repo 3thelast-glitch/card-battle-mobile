@@ -4,7 +4,7 @@ import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
-import { CardPreview } from '@/components/game/card-preview';
+import { RarityCard } from '@/components/game/RarityCard';
 import { EpicCardTemplate } from '@/components/game/epic-card-template';
 import { RotateHintScreen } from '@/components/game/RotateHintScreen';
 import { ALL_CARDS } from '@/lib/game/cards-data';
@@ -13,6 +13,10 @@ import { getRarityConfig } from '@/lib/game/card-rarity';
 import { useLandscapeLayout, CARD_SCALE, LAYOUT_PADDING } from '@/utils/layout';
 import { ArrowLeft, Save } from 'lucide-react-native';
 
+/**
+ * CardsGalleryScreen Component
+ * Displays a gallery of collectible cards with filtering capabilities and detailed view modal
+ */
 export default function CardsGalleryScreen() {
     const router = useRouter();
     const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -20,20 +24,30 @@ export default function CardsGalleryScreen() {
     const [saveText, setSaveText] = useState('حفظ التعديلات');
     const [activeFilter, setActiveFilter] = useState('All');
 
+    /**
+     * Handle save button click
+     * Updates save text to "Saved ✓" then reverts after 2 seconds
+     */
     const handleSave = () => {
         setSaveText('Saved ✓');
         setTimeout(() => setSaveText('حفظ التعديلات'), 2000);
     };
 
+    // Responsive scaling based on device size
     const cardScale = CARD_SCALE[size];
     const padding = LAYOUT_PADDING[size];
     // Responsive gap: tighter on small phones, more breathing room on tablets
     const gridGap = size === 'sm' ? 10 : size === 'md' ? 14 : size === 'lg' ? 18 : 22;
 
+    /**
+     * Handle card press event
+     * @param card - The selected card object
+     */
     const handleCardPress = (card: Card) => {
         setSelectedCard(card);
     };
 
+    // Only render in landscape mode
     if (!isLandscape) {
         return <RotateHintScreen />;
     }
@@ -41,7 +55,7 @@ export default function CardsGalleryScreen() {
     // Filter cards based on active filter state
     const filteredCards = ALL_CARDS.filter(card => {
         if (activeFilter === 'All') return true;
-        
+
         // Map Arabic labels back to rarity IDs
         const rarityMapping: Record<string, string> = {
             'common': 'Common',
@@ -49,15 +63,15 @@ export default function CardsGalleryScreen() {
             'epic': 'ملحمية',
             'legendary': 'أسطورية'
         };
-        
+
         const cardRarityId = (card.rarity ?? 'common').toLowerCase();
-        
+
         // If filter is the english name (Common, Rare)
         if (cardRarityId === activeFilter.toLowerCase()) return true;
-        
+
         // If filter is the arabic name
         if (rarityMapping[cardRarityId] === activeFilter) return true;
-        
+
         return false;
     });
 
@@ -70,6 +84,7 @@ export default function CardsGalleryScreen() {
         return a.race.localeCompare(b.race);
     });
 
+    // Filter tabs configuration with styling
     const FILTER_TABS = [
         { label: 'All', activeClasses: 'border-orange-500 text-orange-500 bg-orange-500/10' },
         { label: 'Common', activeClasses: 'border-emerald-500 text-emerald-500 bg-emerald-500/10' },
@@ -108,7 +123,7 @@ export default function CardsGalleryScreen() {
                         const isActive = activeFilter === tab.label;
                         const baseClasses = "px-4 py-1.5 rounded-full border border-white/10 bg-[#0f172a]/80 backdrop-blur-sm transition-all duration-300 cursor-pointer";
                         const textBaseClasses = "text-sm font-bold text-gray-400";
-                        
+
                         return (
                             <TouchableOpacity
                                 key={tab.label}
@@ -132,11 +147,7 @@ export default function CardsGalleryScreen() {
                 >
                     <View style={[styles.gridContainer, { gap: gridGap, paddingHorizontal: padding }]}>
                         {sortedCards.map((card) => (
-                            <CardPreview
-                                key={card.id}
-                                card={card}
-                                onPress={() => handleCardPress(card)}
-                            />
+                            <RarityCard key={card.id} card={card} size="large" />
                         ))}
                     </View>
                 </ScrollView>
@@ -171,7 +182,6 @@ export default function CardsGalleryScreen() {
                                 imageSrc={selectedCard.finalImage}
                                 nameAr={selectedCard.nameAr}
                                 nameEn={selectedCard.nameEn ?? selectedCard.name}
-                                hp={selectedCard.hp}
                                 attack={selectedCard.attack}
                                 defense={selectedCard.defense}
                                 rarity={selectedCard.rarity}
@@ -222,7 +232,7 @@ export default function CardsGalleryScreen() {
                                     </View>
                                 </View>
 
-                                {/* Full Stats Grid */}
+                                {/* Full Stats Grid - 2 columns */}
                                 <View style={styles.statsGrid}>
                                     <StatDetailItem
                                         icon="⚔️"
@@ -233,16 +243,6 @@ export default function CardsGalleryScreen() {
                                         icon="🛡️"
                                         label="Defense"
                                         value={selectedCard.defense}
-                                    />
-                                    <StatDetailItem
-                                        icon="❤️"
-                                        label="HP"
-                                        value={selectedCard.hp}
-                                    />
-                                    <StatDetailItem
-                                        icon="💨"
-                                        label="Speed"
-                                        value={selectedCard.speed}
                                     />
                                 </View>
 

@@ -1,24 +1,80 @@
 /**
  * Card Gradient Definitions
  * All rarity-based gradient configurations in one place.
+ *
+ * GRADIENT STRUCTURE (3 LinearGradient layers):
+ *
+ *  ┌──────────────────────────────────────────────────────────────┐
+ *  │ TOP layer     → subtle highlight, covers top 55% of card     │
+ *  │               → opacity 0.35, vertical gradient              │
+ *  │ MID layer     → mid-tone blend, covers bottom 70%            │
+ *  │               → opacity 0.70, diagonal gradient              │
+ *  │ BASE layer    → full-card solid base, fills entire card       │
+ *  │               → opacity 1.00, vertical gradient (dark→mid)   │
+ *  └──────────────────────────────────────────────────────────────┘
  */
 
 import type { CardRarityName } from '@/types/card.types';
 
-// ─── Gradients ────────────────────────────────────────────────────────────────
+// ─── Layer Gradient Type ──────────────────────────────────────────────────────
 
-/**
- * 3-stop gradients for each rarity.
- * Used as LinearGradient colors or layered View backgrounds.
- */
-export const CARD_GRADIENTS: Record<CardRarityName, readonly [string, string, string]> = {
-    common: ['#1e3a8a', '#2563eb', '#3B82F6'],
-    rare: ['#78350f', '#d97706', '#F59E0B'],
-    epic: ['#4a1d96', '#7c3aed', '#8B5CF6'],
-    legendary: ['#7f1d1d', '#b91c1c', '#EF4444'],
+export interface CardGradientLayers {
+    /** Full-card base layer – dark to mid, vertical, opacity 1.0 */
+    base: readonly [string, string, string];
+    /** Mid blend layer – diagonal overlay, opacity 0.70 */
+    mid: readonly [string, string, string];
+    /** Top highlight layer – covers top 55%, opacity 0.35 */
+    top: readonly [string, string, string];
+    /** Flat fallback color for View backgrounds (no LinearGradient) */
+    flat: string;
+}
+
+// ─── Layered Gradients ────────────────────────────────────────────────────────
+
+export interface CardGradientLayers {
+    base: readonly [string, string, string];
+    mid: readonly [string, string, string];
+    top: readonly [string, string, string];
+    flat: string;
+}
+
+export interface CardGradientLayers {
+    base: readonly [string, string, string];
+    mid: readonly [string, string, string];
+    top: readonly [string, string, string];
+    flat: string;
+}
+
+export const CARD_GRADIENTS: Record<CardRarityName, CardGradientLayers> = {
+    common: {
+        flat: '#1e3a8a',
+        base: ['#0f1f4a', '#1e3a8a', '#1d4ed8'],
+        mid: ['#1d4ed8', '#2563eb', '#1e3a8a'],
+        top: ['#3b82f6', '#2563eb', 'transparent'],
+    },
+    rare: {
+        flat: '#78350f',
+        base: ['#3d1a06', '#78350f', '#92400e'],
+        mid: ['#b45309', '#d97706', '#78350f'],
+        top: ['#fbbf24', '#f59e0b', 'transparent'],
+    },
+    epic: {
+        flat: '#4a1d96',
+        base: ['#2e1065', '#4a1d96', '#5b21b6'],
+        mid: ['#6d28d9', '#7c3aed', '#4a1d96'],
+        top: ['#a78bfa', '#8b5cf6', 'transparent'],
+    },
+    legendary: {
+        flat: '#7f1d1d',
+        base: ['#450a0a', '#7f1d1d', '#991b1b'],
+        mid: ['#b91c1c', '#dc2626', '#7f1d1d'],
+        top: ['#f87171', '#ef4444', 'transparent'],
+    },
 } as const;
 
-// ─── Border Colors ─────────────────────────────────────────────────────────────
+
+
+// ─── Border Colors ────────────────────────────────────────────────────────────
 
 export const CARD_BORDERS: Record<CardRarityName, string> = {
     common: '#4F46E5',
@@ -84,7 +140,7 @@ export const CARD_HAS_PARTICLES: Record<CardRarityName, boolean> = {
     legendary: true,
 } as const;
 
-// ─── Rarity order ─────────────────────────────────────────────────────────────
+// ─── Rarity Order ─────────────────────────────────────────────────────────────
 
 export const RARITY_ORDER: Record<CardRarityName, number> = {
     common: 0,
@@ -93,7 +149,7 @@ export const RARITY_ORDER: Record<CardRarityName, number> = {
     legendary: 3,
 } as const;
 
-/** Sort cards by rarity (high to low) */
+/** Sort cards by rarity descending (Legendary first) */
 export function sortByRarity<T extends { rarity: CardRarityName }>(cards: T[]): T[] {
     return [...cards].sort((a, b) => RARITY_ORDER[b.rarity] - RARITY_ORDER[a.rarity]);
 }

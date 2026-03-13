@@ -99,8 +99,8 @@ export default function AbilitiesScreen() {
                                     key={item.id ? item.id.toString() : `ability-${index}`}
                                     className="shrink-0"
                                     style={{
-                                        width: 160,
-                                        height: 208,
+                                        width: 220,
+                                        height: 330,
                                     }}
                                 >
                                     <AbilityCard ability={item} />

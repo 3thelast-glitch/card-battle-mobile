@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, TouchableOpacity, StyleSheet, Modal, FlatList, ScrollView } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
@@ -11,9 +11,45 @@ import { ALL_CARDS } from '@/lib/game/cards-data';
 import { Card, AbilityType } from '@/lib/game/types';
 import { getAbilityNameOnly, getAbilityDescription } from '@/lib/game/ability-names';
 import { getRandomAbilities } from '@/lib/game/abilities';
+import { AbilityCard, AbilityData } from '@/components/game/ability-card';
+import { abilities as allAbilitiesData } from '@/data/abilities';
 import { ProButton } from '@/components/ui/ProButton';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW, FONT_FAMILY } from '@/components/ui/design-tokens';
 import { useLandscapeLayout, GRID_COLUMNS, CARD_SCALE, LAYOUT_PADDING } from '@/utils/layout';
+
+// Convert PascalCase AbilityType to space-separated nameEn
+// e.g. 'LogicalEncounter' → 'Logical Encounter', 'AddElement' → 'Add Element'
+function abilityTypeToNameEn(type: AbilityType): string {
+  return type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+}
+
+// Map AbilityType → full Ability object from data/abilities.ts
+function resolveAbilityData(type: AbilityType): AbilityData {
+  const nameEn = abilityTypeToNameEn(type);
+  const found = allAbilitiesData.find(
+    (a) => a.nameEn.toLowerCase() === nameEn.toLowerCase()
+  );
+  if (found) {
+    return {
+      id: found.id,
+      nameEn: found.nameEn,
+      nameAr: found.nameAr,
+      description: found.description,
+      icon: found.icon,
+      rarity: found.rarity,
+      isActive: found.isActive,
+    };
+  }
+  // Fallback for abilities not in the data array (e.g. 'Shambles')
+  return {
+    id: type,
+    nameEn: nameEn,
+    nameAr: type,
+    description: '',
+    icon: null,
+    rarity: 'Common',
+  };
+}
 
 interface CardRound {
   card: Card;
@@ -267,40 +303,56 @@ export default function CardSelectionScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Abilities Modal */}
+      {/* Abilities Modal — Horizontal AbilityCard Gallery */}
       <Modal
         visible={isAbilitiesModalOpen}
         transparent
         animationType="fade"
         onRequestClose={() => setIsAbilitiesModalOpen(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACE.xl }}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsAbilitiesModalOpen(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={styles.abilitiesModalContent}
+          >
+            {/* Header row */}
+            <View style={styles.abilitiesModalHeader}>
               <Text style={[styles.modalTitle, { marginBottom: 0 }]}>القدرات المتاحة ⚡</Text>
               <TouchableOpacity onPress={() => setIsAbilitiesModalOpen(false)} style={{ padding: 4 }}>
-                <Text style={{ color: COLOR.textMuted, fontSize: FONT.xl, }}>✕</Text>
+                <Text style={{ color: COLOR.textMuted, fontSize: FONT.xl }}>✕</Text>
               </TouchableOpacity>
             </View>
-            <FlatList
-              data={assignedAbilities}
-              keyExtractor={(_, index) => index.toString()}
-              renderItem={({ item }) => (
-                <View style={[styles.abilityModalItem, styles.abilityModalItemActive]}>
-                  <Text style={styles.abilityModalItemTitle}>
-                    ⚡ {getAbilityNameOnly(item)}
-                  </Text>
-                  <Text style={styles.abilityModalItemDesc}>
-                    {getAbilityDescription(item)}
-                  </Text>
-                </View>
-              )}
-              ListEmptyComponent={() => (
-                <Text style={{ color: COLOR.textMuted, textAlign: 'center', marginVertical: SPACE.xl }}>لا توجد قدرات متاحة</Text>
-              )}
-            />
-          </View>
-        </View>
+
+            {/* Horizontal scrolling AbilityCards */}
+            {assignedAbilities.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.abilitiesScrollContent}
+              >
+                {assignedAbilities.map((abilityType, index) => {
+                  const abilityData = resolveAbilityData(abilityType);
+                  return (
+                    <View key={index} style={styles.abilityCardSlot}>
+                      <View style={{ transform: [{ scale: 0.85 }] }}>
+                        <AbilityCard ability={abilityData} showActionButtons={false} />
+                      </View>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <Text style={{ color: COLOR.textMuted, textAlign: 'center', marginVertical: SPACE.xl }}>
+                لا توجد قدرات متاحة
+              </Text>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </ScreenContainer>
   );
@@ -439,7 +491,7 @@ const styles = StyleSheet.create({
   // Base modals
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -455,6 +507,31 @@ const styles = StyleSheet.create({
     fontSize: FONT.xl,
     textAlign: 'center',
     marginBottom: SPACE.xl,
+  },
+  // Abilities modal (horizontal card gallery)
+  abilitiesModalContent: {
+    ...GLASS_PANEL,
+    width: '92%',
+    maxWidth: 800,
+    padding: SPACE.lg,
+    paddingBottom: SPACE.md,
+  },
+  abilitiesModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACE.lg,
+  },
+  abilitiesScrollContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  abilityCardSlot: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   focusModalContentRow: {
     flexDirection: 'row',
