@@ -11,12 +11,12 @@ import { useGame } from '@/lib/game/game-context';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
 
 export default function LeaderboardScreen() {
-  const router = useRouter();
+  const router   = useRouter();
   const { state } = useGame();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  const totalRounds = state.totalRounds || 5;
+  const totalRounds   = state.totalRounds || 5;
   const numberOptions = Array.from({ length: 20 }, (_, i) => i + 1);
 
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
@@ -43,9 +43,15 @@ export default function LeaderboardScreen() {
   const progress = selectedNumbers.length / totalRounds;
 
   // Pill size adapts to screen width — always 4 columns minimum
+<<<<<<< HEAD
   const cols = isLandscape ? 10 : 5;
   const gap = SPACE.sm;
   const hPad = SPACE.lg * 2 + SPACE.xl * 2;
+=======
+  const cols    = isLandscape ? 10 : 5;
+  const gap     = SPACE.sm;
+  const hPad    = SPACE.lg * 2 + SPACE.xl * 2;
+>>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
   const pillSize = Math.max(44, Math.min(64, (width - hPad - gap * (cols - 1)) / cols));
 
   return (
@@ -83,7 +89,11 @@ export default function LeaderboardScreen() {
             <View style={[styles.numbersGrid, { gap }]}>
               {numberOptions.map((num) => {
                 const isSelected = selectedNumbers.includes(num);
+<<<<<<< HEAD
                 const order = isSelected ? selectedNumbers.indexOf(num) + 1 : null;
+=======
+                const order      = isSelected ? selectedNumbers.indexOf(num) + 1 : null;
+>>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
                 return (
                   <TouchableOpacity
                     key={num}
@@ -251,4 +261,8 @@ const styles = StyleSheet.create({
   continueBtnDisabled: { backgroundColor: 'rgba(228,165,42,0.2)', shadowOpacity: 0, elevation: 0 },
   continueBtnText: { fontSize: FONT.xl, color: '#1A0D1A' },
   continueBtnTextDisabled: { color: 'rgba(255,255,255,0.2)' },
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639

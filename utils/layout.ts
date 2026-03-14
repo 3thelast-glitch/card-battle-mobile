@@ -27,8 +27,13 @@ export const useLandscapeLayout = (): LandscapeLayout => {
 
     const size: LayoutSize = (() => {
         if (width >= 1200) return 'xl'; // large tablets / desktop
+<<<<<<< HEAD
         if (width >= 900) return 'lg'; // tablets / very wide phones
         if (width >= 700) return 'md'; // S23 Ultra class
+=======
+        if (width >= 900)  return 'lg'; // tablets / very wide phones
+        if (width >= 700)  return 'md'; // S23 Ultra class
+>>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
         return 'sm';                    // normal phones
     })();
 
@@ -123,7 +128,11 @@ export const useCardSize = (
         case 'battle': {
             // fit inside 55% of screen height, capped by CARD_WIDTH_FACTOR
             const byHeight = (height * 0.55) / CARD_ASPECT;
+<<<<<<< HEAD
             const byWidth = width * CARD_WIDTH_FACTOR[size] * 0.9;
+=======
+            const byWidth  = width * CARD_WIDTH_FACTOR[size] * 0.9;
+>>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
             cardW = Math.min(byHeight, byWidth);
             break;
         }
@@ -138,4 +147,8 @@ export const useCardSize = (
     }
 
     return { cardW, cardH: Math.round(cardW * CARD_ASPECT), size };
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639

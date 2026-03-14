@@ -68,13 +68,12 @@ export default function CardSelectionScreen() {
   const { cardW: modalCardW, cardH: modalCardH } = useCardSize('modal');
 
   useEffect(() => {
-    AsyncStorage.getItem('disabledAbilities').then(raw => {
-      const disabled = new Set(raw ? JSON.parse(raw) : []);
-      const available = ALL_ABILITIES.filter(a => !disabled.has(a));
-      const picked = available.sort(() => Math.random() - 0.5).slice(0, 3);
+    // نقرأ القدرات المعطّلة مباشرةً من AsyncStorage بدون اعتماد على الكاش
+    pickRandomAbilities(3).then(abilities => {
       const shuffled = [...allCards].sort(() => Math.random() - 0.5);
-      setCardRounds(shuffled.slice(0, totalRounds).map(card => ({ card, round: null })));
-      setAssignedAbilities(picked);
+      const initialCards = shuffled.slice(0, totalRounds).map(card => ({ card, round: null }));
+      setCardRounds(initialCards);
+      setAssignedAbilities(abilities);
     });
   }, [totalRounds, allCards]);
 
