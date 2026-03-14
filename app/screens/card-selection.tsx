@@ -9,10 +9,11 @@ import { RotateHintScreen } from '@/components/game/RotateHintScreen';
 import { useGame } from '@/lib/game/game-context';
 import { useCards } from '@/lib/game/useCards';
 import { Card, AbilityType } from '@/lib/game/types';
-import { getRandomAbilities, loadDisabledAbilities } from '@/lib/game/abilities';
+import { ALL_ABILITIES, DISABLED_ABILITIES_KEY } from '@/lib/game/abilities';
 import { AbilityCard, AbilityData } from '@/components/game/ability-card';
 import { abilities as allAbilitiesData } from '@/data/abilities';
 import { ProButton } from '@/components/ui/ProButton';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLOR, SPACE, RADIUS, FONT_FAMILY } from '@/components/ui/design-tokens';
 import {
   useLandscapeLayout,
@@ -30,6 +31,21 @@ function resolveAbilityData(type: AbilityType): AbilityData {
   const found = allAbilitiesData.find(a => a.nameEn.toLowerCase() === nameEn.toLowerCase());
   if (found) return { id: found.id, nameEn: found.nameEn, nameAr: found.nameAr, description: found.description, icon: found.icon, rarity: found.rarity, isActive: found.isActive };
   return { id: type, nameEn, nameAr: type, description: '', icon: null, rarity: 'Common' };
+}
+
+/** اختيار قدرات عشوائية مع استثناء المعطّلة مباشرةً من AsyncStorage */
+async function pickRandomAbilities(count: number): Promise<AbilityType[]> {
+  try {
+    const raw = await AsyncStorage.getItem(DISABLED_ABILITIES_KEY);
+    const disabledArr: AbilityType[] = raw ? JSON.parse(raw) : [];
+    const disabledSet = new Set(disabledArr);
+    const available = ALL_ABILITIES.filter(a => !disabledSet.has(a));
+    const shuffled = [...available].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(count, shuffled.length));
+  } catch {
+    const shuffled = [...ALL_ABILITIES].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  }
 }
 
 interface CardRound { card: Card; round: number | null; }
@@ -52,12 +68,13 @@ export default function CardSelectionScreen() {
   const { cardW: modalCardW, cardH: modalCardH } = useCardSize('modal');
 
   useEffect(() => {
-    // نحمّل القدرات المعطّلة أولاً من AsyncStorage قبل اختيار القدرات العشوائية
-    loadDisabledAbilities().then(() => {
+    AsyncStorage.getItem('disabledAbilities').then(raw => {
+      const disabled = new Set(raw ? JSON.parse(raw) : []);
+      const available = ALL_ABILITIES.filter(a => !disabled.has(a));
+      const picked = available.sort(() => Math.random() - 0.5).slice(0, 3);
       const shuffled = [...allCards].sort(() => Math.random() - 0.5);
-      const initialCards = shuffled.slice(0, totalRounds).map(card => ({ card, round: null }));
-      setCardRounds(initialCards);
-      setAssignedAbilities(getRandomAbilities(3));
+      setCardRounds(shuffled.slice(0, totalRounds).map(card => ({ card, round: null })));
+      setAssignedAbilities(picked);
     });
   }, [totalRounds, allCards]);
 
