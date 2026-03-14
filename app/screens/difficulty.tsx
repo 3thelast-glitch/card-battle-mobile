@@ -1,249 +1,213 @@
+/**
+ * DifficultyScreen — Redesigned: Professional, responsive, clean.
+ */
 import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
-import { RotateHintScreen } from '@/components/game/RotateHintScreen';
 import { useGame } from '@/lib/game/game-context';
-import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW, FONT_FAMILY } from '@/components/ui/design-tokens';
-import { useLandscapeLayout, LAYOUT_PADDING } from '@/utils/layout';
+import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
 
 export type DifficultyLevel = 1 | 2 | 3 | 4 | 5;
 
-const MiniLevelButton = ({
-  level,
-  difficulty,
-  stars,
-  selected,
-  onPress
-}: {
+const LEVELS: {
   level: DifficultyLevel;
-  difficulty: string;
-  stars: number;
-  selected: boolean;
-  onPress: (lvl: DifficultyLevel) => void
-}) => (
-  <TouchableOpacity
-    style={[
-      styles.miniButton,
-      selected && styles.miniButtonSelected
-    ]}
-    onPress={() => onPress(level)}
-    activeOpacity={0.7}
-  >
-    {/* Stars Row */}
-    <View style={styles.starsRow}>
-      {[...Array(5)].map((_, i) => (
-        <View key={i} style={[
-          styles.star,
-          i < stars && styles.filledStar,
-          i >= stars && styles.emptyStar
-        ]} />
-      ))}
-    </View>
-
-    {/* Level Number */}
-    <Text style={styles.levelNumber}>{level}</Text>
-
-    {/* Arabic Label */}
-    <Text style={styles.difficultyLabel}>{difficulty}</Text>
-  </TouchableOpacity>
-);
+  label: string;
+  emoji: string;
+  desc: string;
+  color: string;
+}[] = [
+    { level: 1, label: 'سهل', emoji: '🌱', desc: 'للمبتدئين', color: '#4ade80' },
+    { level: 2, label: 'متوسط', emoji: '⚡', desc: 'تحدٍّ معقول', color: '#60a5fa' },
+    { level: 3, label: 'صعب', emoji: '🔥', desc: 'يتطلب استراتيجية', color: '#fb923c' },
+    { level: 4, label: 'خيالي', emoji: '💎', desc: 'للمحترفين فقط', color: '#c084fc' },
+    { level: 5, label: 'أسطوري', emoji: '👑', desc: 'أعلى مستوى ممكن', color: COLOR.gold },
+  ];
 
 export default function DifficultyScreen() {
   const router = useRouter();
   const { setDifficulty } = useGame();
-  const [selectedLevel, setSelectedLevel] = useState<DifficultyLevel | null>(null);
-  const { isLandscape, size } = useLandscapeLayout();
-  const { height } = useWindowDimensions();
-  const padding = LAYOUT_PADDING[size];
-  const isSmallHeight = height < 400;
-
-  const levels: { level: DifficultyLevel; difficulty: string; stars: number }[] = [
-    { level: 1, difficulty: 'سهل', stars: 1 },
-    { level: 2, difficulty: 'متوسط', stars: 2 },
-    { level: 3, difficulty: 'صعب', stars: 3 },
-    { level: 4, difficulty: 'خيالي', stars: 4 },
-    { level: 5, difficulty: 'أسطوري', stars: 5 },
-  ];
+  const [selected, setSelected] = useState<DifficultyLevel | null>(null);
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   const handleContinue = () => {
-    if (selectedLevel) {
-      setDifficulty(selectedLevel);
-      router.push('/screens/rounds-config' as any);
-    }
+    if (!selected) return;
+    setDifficulty(selected);
+    router.push('/screens/rounds-config' as any);
   };
 
-  if (!isLandscape) {
-    return <RotateHintScreen />;
-  }
+  const levelsContent = (
+    <View style={[styles.levelsGrid, isLandscape && styles.levelsGridLandscape]}>
+      {LEVELS.map((lvl) => {
+        const active = selected === lvl.level;
+        return (
+          <TouchableOpacity
+            key={lvl.level}
+            style={[
+              styles.levelCard,
+              active && { borderColor: lvl.color, backgroundColor: lvl.color + '18', ...SHADOW.card },
+              isLandscape && styles.levelCardLandscape,
+            ]}
+            onPress={() => setSelected(lvl.level)}
+            activeOpacity={0.75}
+          >
+            {/* Active indicator */}
+            {active && <View style={[styles.activeBar, { backgroundColor: lvl.color }]} />}
+
+            <Text style={styles.levelEmoji}>{lvl.emoji}</Text>
+            <Text style={[styles.levelLabel, active && { color: lvl.color }]}>{lvl.label}</Text>
+            <Text style={styles.levelDesc}>{lvl.desc}</Text>
+
+            {/* Stars */}
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Text key={i} style={{ fontSize: 12, color: i <= lvl.level ? lvl.color : 'rgba(255,255,255,0.12)' }}>
+                  ★
+                </Text>
+              ))}
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
 
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
-        <View style={[styles.levelsContainer, { paddingHorizontal: padding }, isSmallHeight && { paddingVertical: 12 }]}>
-          <Text style={[styles.title, isSmallHeight && { fontSize: 24, marginBottom: 4 }]}>اختر المستوى</Text>
-          <View style={[styles.miniButtonsRow, isSmallHeight && { marginVertical: 16 }]}>
-            {levels.map((lvl) => (
-              <MiniLevelButton
-                key={lvl.level}
-                level={lvl.level}
-                difficulty={lvl.difficulty}
-                stars={lvl.stars}
-                selected={selectedLevel === lvl.level}
-                onPress={setSelectedLevel}
-              />
-            ))}
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Back */}
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <Text style={styles.backBtnText}>← رجوع</Text>
+          </TouchableOpacity>
+
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>اختر المستوى</Text>
+            <Text style={styles.subtitle}>كلما زاد المستوى كلما صعبت المواجهة</Text>
           </View>
 
-          <View style={[styles.controlsContainer, isSmallHeight && { marginTop: 20 }]}>
-            <TouchableOpacity
-              style={[styles.backButton, isSmallHeight && { paddingVertical: 12 }]}
-              onPress={() => router.back()}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.backButtonText, isSmallHeight && { fontSize: 16 }]}>← رجوع</Text>
-            </TouchableOpacity>
+          {/* Levels */}
+          {levelsContent}
 
-            <TouchableOpacity
-              style={[
-                styles.continueButton,
-                isSmallHeight && { paddingVertical: 12 },
-                !selectedLevel && styles.continueButtonDisabled,
-              ]}
-              onPress={handleContinue}
-              disabled={!selectedLevel}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.continueButtonText,
-                  isSmallHeight && { fontSize: 16 },
-                  !selectedLevel && styles.continueButtonTextDisabled,
-                ]}
-              >
-                التالي →
+          {/* Selected hint */}
+          {selected && (
+            <View style={styles.selectedHint}>
+              <Text style={styles.selectedHintText}>
+                {LEVELS.find(l => l.level === selected)?.emoji}{' '}
+                اخترت: {LEVELS.find(l => l.level === selected)?.label}
               </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+            </View>
+          )}
+
+          {/* CTA */}
+          <TouchableOpacity
+            style={[styles.continueBtn, !selected && styles.continueBtnDisabled]}
+            onPress={handleContinue}
+            disabled={!selected}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.continueBtnText, !selected && styles.continueBtnTextDisabled]}>
+              التالي →
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </LuxuryBackground>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  levelsContainer: {
-    flex: 1,
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+  container: {
+    paddingHorizontal: SPACE.lg,
+    paddingTop: SPACE.xl,
+    paddingBottom: SPACE.xxl + SPACE.xl,
+    gap: SPACE.lg,
   },
-  title: {
-    fontSize: 32,
-    color: '#d4af37',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  miniButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    width: '100%',
-    marginVertical: 32,
-    gap: 12,
-  },
-  miniButton: {
-    flex: 1,
-    maxWidth: 80,
-    minHeight: 60,
-    borderRadius: 24,
-    backgroundColor: 'rgba(26,13,26,0.8)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(228,165,42,0.4)',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-    paddingHorizontal: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  miniButtonSelected: {
-    backgroundColor: 'rgba(228,165,42,0.15)',
-    borderColor: '#E4A52A',
-    shadowColor: '#E4A52A',
-    shadowOpacity: 0.6,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-evenly',
-  },
-  star: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  filledStar: {
-    backgroundColor: '#E4A52A',
-  },
-  emptyStar: {
-    backgroundColor: 'rgba(228,165,42,0.3)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(228,165,42,0.5)',
-  },
-  levelNumber: {
-    fontSize: 22,
-    color: '#E4A52A',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  difficultyLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.85)',
-    textAlign: 'center',
-    lineHeight: 9,
-    width: '100%',
-  },
-  controlsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginTop: 40,
-    width: '100%',
-  },
-  backButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 16,
-    borderRadius: 32,
+
+  backBtn: {
+    alignSelf: 'flex-start',
+    paddingVertical: SPACE.sm,
+    paddingHorizontal: SPACE.md,
+    borderRadius: RADIUS.sm,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.5)',
+    borderColor: 'rgba(228,165,42,0.3)',
   },
-  backButtonText: {
-    fontSize: 18,
-    color: '#d4af37',
-    textAlign: 'center',
+  backBtnText: { color: COLOR.gold, fontSize: FONT.md },
+
+  header: { alignItems: 'center', gap: SPACE.xs },
+  title: { fontSize: FONT.hero, color: COLOR.gold, letterSpacing: 1, textAlign: 'center' },
+  subtitle: { color: COLOR.textMuted, fontSize: FONT.sm, textAlign: 'center' },
+
+  // Levels grid — portrait: 1 column, landscape: 5 in a row
+  levelsGrid: {
+    gap: SPACE.md,
   },
-  continueButton: {
+  levelsGridLandscape: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+  },
+
+  levelCard: {
     flex: 1,
-    backgroundColor: '#d4af37',
-    paddingVertical: 16,
-    borderRadius: 32,
+    ...GLASS_PANEL,
+    padding: SPACE.lg,
+    alignItems: 'center',
+    gap: SPACE.xs,
+    position: 'relative',
+    overflow: 'hidden',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
   },
-  continueButtonDisabled: {
-    backgroundColor: 'rgba(212, 175, 55, 0.3)',
+  levelCardLandscape: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    paddingVertical: SPACE.xl,
+    minWidth: 0,
   },
-  continueButtonText: {
-    fontSize: 18,
-    color: '#1a1a1a',
-    textAlign: 'center',
+
+  activeBar: {
+    position: 'absolute',
+    left: 0, top: 0, bottom: 0,
+    width: 4,
+    borderTopLeftRadius: RADIUS.md,
+    borderBottomLeftRadius: RADIUS.md,
   },
-  continueButtonTextDisabled: {
-    color: '#666',
+
+  levelEmoji: { fontSize: 28, marginRight: SPACE.md },
+  levelLabel: { fontSize: FONT.lg, color: COLOR.textPrimary, flex: 1 },
+  levelDesc: { fontSize: FONT.xs, color: COLOR.textMuted, flex: 1 },
+  starsRow: { flexDirection: 'row', gap: 2 },
+
+  selectedHint: {
+    alignItems: 'center',
+    paddingVertical: SPACE.sm,
+    backgroundColor: 'rgba(228,165,42,0.08)',
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: 'rgba(228,165,42,0.25)',
   },
+  selectedHintText: { color: COLOR.gold, fontSize: FONT.md },
+
+  continueBtn: {
+    backgroundColor: COLOR.gold,
+    paddingVertical: SPACE.lg,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    ...SHADOW.gold,
+  },
+  continueBtnDisabled: {
+    backgroundColor: 'rgba(228,165,42,0.2)',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  continueBtnText: { fontSize: FONT.xl, color: '#1A0D1A' },
+  continueBtnTextDisabled: { color: 'rgba(255,255,255,0.25)' },
 });

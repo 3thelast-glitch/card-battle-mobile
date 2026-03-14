@@ -44,6 +44,14 @@ export interface Card {
   videoUrl?: string;
   /** Visual rarity tier — defaults to 'common' if absent */
   rarity?: CardRarity;
+  /**
+   * Star rating shown on the card.
+   * Stored as plain number (0–5) so AsyncStorage round-trips work without type errors.
+   * 0 = no stars displayed.
+   */
+  stars?: number;
+  /** Special ability text displayed on the card (Arabic) */
+  specialAbility?: string;
   /** Special gameplay effects this card carries */
   cardEffects?: CardEffect[];
   /** Animation preset key for battle animations */
@@ -129,7 +137,6 @@ export interface Effect {
   data?: Record<string, unknown>;
 }
 
-// Legacy: kept for older ability executors that haven't been migrated yet.
 export interface ActiveEffect {
   type: 'buff' | 'debuff' | 'seal';
   target: 'player' | 'bot' | 'all';
@@ -149,10 +156,10 @@ export interface GameState {
   roundResults: RoundResult[];
   difficulty: 1 | 2 | 3 | 4 | 5;
   abilitiesEnabled: boolean;
-  activeEffects: Effect[]; // قائمة التأثيرات النشطة
-  playerAbilities: AbilityState[]; // القدرات الممنوحة للاعب
-  botAbilities: AbilityState[]; // القدرات الممنوحة للبوت
-  usedAbilities: AbilityType[]; // القدرات التي تم استخدامها بالفعل
+  activeEffects: Effect[];
+  playerAbilities: AbilityState[];
+  botAbilities: AbilityState[];
+  usedAbilities: AbilityType[];
 }
 
 export interface AbilityState {
@@ -173,7 +180,6 @@ export interface RoundResult {
   winner: 'player' | 'bot' | 'draw';
 }
 
-// ثوابت الإحصائيات
 export const RACE_EMOJI: Record<Race, string> = {
   human: '👤',
   elf: '🧝',
@@ -210,34 +216,28 @@ export const ELEMENT_COLORS: Record<Element, string> = {
   wind: '#a78bfa',
 };
 
-// نظام تأثيرات العناصر
-// النار > الجليد > الأرض > النار (دورة)
 export type ElementAdvantage = 'strong' | 'weak' | 'neutral';
 
-// مضاعف الضرر عند التفوق العنصري
 export const ELEMENT_MULTIPLIER = {
-  strong: 1.25, // +25% ضرر
-  weak: 0.75, // -25% ضرر
-  neutral: 1.0, // بدون تغيير
+  strong: 1.25,
+  weak: 0.75,
+  neutral: 1.0,
 };
 
-// خريطة التفوق العنصري
-// fire > ice > earth > fire
 export const ELEMENT_ADVANTAGES: Record<Element, Element[]> = {
-  fire: ['ice'], // النار قوية ضد الجليد
-  ice: ['earth'], // الجليد قوي ضد الأرض
-  earth: ['fire'], // الأرض قوية ضد النار
-  water: [], // الماء محايد
-  lightning: [], // البرق محايد
-  wind: [], // الريح محايدة
+  fire: ['ice'],
+  ice: ['earth'],
+  earth: ['fire'],
+  water: [],
+  lightning: [],
+  wind: [],
 };
 
-// خريطة الضعف العنصري
 export const ELEMENT_WEAKNESSES: Record<Element, Element[]> = {
-  fire: ['earth'], // النار ضعيفة ضد الأرض
-  ice: ['fire'], // الجليد ضعيف ضد النار
-  earth: ['ice'], // الأرض ضعيفة ضد الجليد
-  water: [], // الماء محايد
-  lightning: [], // البرق محايد
-  wind: [], // الريح محايدة
+  fire: ['earth'],
+  ice: ['fire'],
+  earth: ['ice'],
+  water: [],
+  lightning: [],
+  wind: [],
 };

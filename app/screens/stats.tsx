@@ -1,173 +1,197 @@
-import { View, ScrollView, Pressable, Alert, StyleSheet } from 'react-native';
+/**
+ * StatsScreen — Redesigned: Professional, responsive, clean.
+ */
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView, TouchableOpacity, Alert, StyleSheet, useWindowDimensions } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
-import { useState, useEffect } from 'react';
 import { loadStats, resetStats } from '@/lib/stats/storage';
 import { PlayerStats } from '@/lib/stats/types';
-import { ProButton } from '@/components/ui/ProButton';
-import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, FONT_FAMILY } from '@/components/ui/design-tokens';
+import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
 
-const ELEMENT_COLORS: Record<string, string> = {
-  fire: '#EF4444',
-  ice: '#38BDF8',
-  water: '#3B82F6',
-  earth: '#84CC16',
-  lightning: '#FACC15',
-  wind: '#A78BFA',
+const ELEMENT_META: Record<string, { color: string; emoji: string; label: string }> = {
+  fire: { color: '#ef4444', emoji: '🔥', label: 'نار' },
+  ice: { color: '#38bdf8', emoji: '❄️', label: 'جليد' },
+  water: { color: '#3b82f6', emoji: '💧', label: 'ماء' },
+  earth: { color: '#84cc16', emoji: '🌍', label: 'أرض' },
+  lightning: { color: '#facc15', emoji: '⚡', label: 'برق' },
+  wind: { color: '#a78bfa', emoji: '🌪️', label: 'ريح' },
 };
+
+function StatCard({ value, label, color, emoji }: { value: string | number; label: string; color: string; emoji: string }) {
+  return (
+    <View style={sc.card}>
+      <Text style={sc.emoji}>{emoji}</Text>
+      <Text style={[sc.value, { color }]}>{value}</Text>
+      <Text style={sc.label}>{label}</Text>
+    </View>
+  );
+}
+const sc = StyleSheet.create({
+  card: {
+    flex: 1, minWidth: 70,
+    alignItems: 'center',
+    paddingVertical: SPACE.md,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    gap: SPACE.xs,
+  },
+  emoji: { fontSize: 22 },
+  value: { fontSize: FONT.xl },
+  label: { color: COLOR.textMuted, fontSize: FONT.xs - 2, textAlign: 'center' },
+});
 
 export default function StatsScreen() {
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadStatsData(); }, []);
-
-  const loadStatsData = async () => {
+  useEffect(() => { load(); }, []);
+  const load = async () => {
     setLoading(true);
-    const data = await loadStats();
-    setStats(data);
+    setStats(await loadStats());
     setLoading(false);
   };
 
   const handleReset = () => {
-    Alert.alert(
-      'إعادة تعيين الإحصائيات',
-      'هل أنت متأكد؟',
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'حذف',
-          style: 'destructive',
-          onPress: async () => { await resetStats(); await loadStatsData(); },
-        },
-      ]
-    );
+    Alert.alert('إعادة تعيين', 'سيتم حذف جميع إحصائياتك. هل أنت متأكد؟', [
+      { text: 'إلغاء', style: 'cancel' },
+      { text: 'حذف', style: 'destructive', onPress: async () => { await resetStats(); await load(); } },
+    ]);
   };
 
   const winRate = stats && stats.totalMatches > 0
     ? ((stats.totalWins / stats.totalMatches) * 100).toFixed(1)
     : '0.0';
 
-  const elementStatsArray = stats
+  const elements = stats
     ? Object.values(stats.elementStats).sort((a, b) => b.timesUsed - a.timesUsed)
     : [];
+
+  // ─ Left column (landscape) / single column (portrait)
+  const leftContent = (
+    <>
+      {/* Overview */}
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>📊 نظرة عامة</Text>
+        <View style={styles.cardsRow}>
+          <StatCard value={stats?.totalMatches ?? 0} label="مباريات" color={COLOR.gold} emoji="🎮" />
+          <StatCard value={stats?.totalWins ?? 0} label="انتصارات" color={COLOR.green} emoji="🏆" />
+          <StatCard value={stats?.totalLosses ?? 0} label="هزائم" color={COLOR.red} emoji="💀" />
+          <StatCard value={stats?.totalDraws ?? 0} label="تعادلات" color={COLOR.amber} emoji="🤝" />
+        </View>
+        {/* Win rate bar */}
+        <View style={styles.barRow}>
+          <Text style={styles.barLabel}>معدل الفوز</Text>
+          <View style={styles.barTrack}>
+            <View style={[styles.barFill, { width: `${winRate}%` as any, backgroundColor: COLOR.green }]} />
+          </View>
+          <Text style={[styles.barValue, { color: COLOR.green }]}>{winRate}%</Text>
+        </View>
+      </View>
+
+      {/* Streaks */}
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>🔥 أفضل النتائج</Text>
+        <View style={styles.cardsRow}>
+          <StatCard value={stats?.bestWinStreak ?? 0} label="أطول سلسلة" color={COLOR.gold} emoji="👑" />
+          <StatCard value={stats?.currentWinStreak ?? 0} label="السلسلة الحالية" color={COLOR.amber} emoji="🔥" />
+          <StatCard value={stats?.highestScore ?? 0} label="أعلى نتيجة" color={COLOR.green} emoji="⭐" />
+        </View>
+      </View>
+    </>
+  );
+
+  // ─ Right column (landscape) / continue column (portrait)
+  const rightContent = (
+    <>
+      {/* Elements */}
+      {elements.length > 0 && (
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>🌟 إحصائيات العناصر</Text>
+          {elements.map((el) => {
+            const meta = ELEMENT_META[el.element] ?? { color: COLOR.gold, emoji: '✦', label: el.element };
+            const frac = el.timesUsed > 0 ? el.wins / el.timesUsed : 0;
+            return (
+              <View key={el.element} style={styles.elRow}>
+                <Text style={styles.elEmoji}>{meta.emoji}</Text>
+                <Text style={[styles.elName, { color: meta.color }]}>{meta.label}</Text>
+                <View style={styles.elTrack}>
+                  <View style={[styles.elFill, { width: `${frac * 100}%` as any, backgroundColor: meta.color }]} />
+                </View>
+                <Text style={styles.elStats}>{el.wins}W/{el.losses}L</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Match history */}
+      {stats && stats.matchHistory.length > 0 && (
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>📜 آخر المباريات</Text>
+          {stats.matchHistory.slice(0, 10).map((match) => {
+            const isWin = match.winner === 'player';
+            const isDraw = match.winner === 'draw';
+            const color = isWin ? COLOR.green : isDraw ? COLOR.amber : COLOR.red;
+            const label = isWin ? 'فوز 🏆' : isDraw ? 'تعادل 🤝' : 'هزيمة 💀';
+            const diff = ['', 'سهل', 'متوسط', 'صعب', 'خيالي', 'أسطوري'][match.difficulty ?? 0] ?? '?';
+            return (
+              <View key={match.id} style={[styles.histRow, { borderLeftColor: color }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.histResult, { color }]}>{label}</Text>
+                  <Text style={styles.histDiff}>{diff}</Text>
+                </View>
+                <Text style={styles.histScore}>{match.playerScore} — {match.botScore}</Text>
+                <Text style={styles.histRounds}>{match.totalRounds} ج</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </>
+  );
 
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>📊 الإحصائيات</Text>
           </View>
 
-          {/* General stats */}
-          <View style={styles.panel}>
-            <Text style={styles.panelTitle}>عام</Text>
-            <View style={styles.statsRow}>
-              {[
-                { label: 'مباريات', value: stats?.totalMatches ?? 0, color: COLOR.gold },
-                { label: 'انتصارات', value: stats?.totalWins ?? 0, color: COLOR.green },
-                { label: 'هزائم', value: stats?.totalLosses ?? 0, color: COLOR.red },
-                { label: 'تعادلات', value: stats?.totalDraws ?? 0, color: COLOR.amber },
-              ].map((s) => (
-                <View key={s.label} style={styles.statPill}>
-                  <Text style={[styles.statNum, { color: s.color }]}>{s.value}</Text>
-                  <Text style={styles.statLabel}>{s.label}</Text>
-                </View>
-              ))}
+          {isLandscape ? (
+            <View style={styles.twoCol}>
+              <View style={{ flex: 1, gap: SPACE.lg }}>{leftContent}</View>
+              <View style={{ flex: 1, gap: SPACE.lg }}>{rightContent}</View>
             </View>
-            {/* Win rate bar */}
-            <View style={styles.winRateRow}>
-              <Text style={styles.winRateLabel}>معدل الفوز: {winRate}%</Text>
-              <View style={styles.winRateTrack}>
-                <View style={[styles.winRateFill, { width: `${winRate}%` as any }]} />
-              </View>
-            </View>
-          </View>
-
-          {/* Streaks */}
-          <View style={styles.panel}>
-            <Text style={styles.panelTitle}>أفضل النتائج</Text>
-            <View style={styles.statsRow}>
-              <View style={styles.statPill}>
-                <Text style={[styles.statNum, { color: COLOR.gold }]}>{stats?.bestWinStreak ?? 0}</Text>
-                <Text style={styles.statLabel}>أطول سلسلة</Text>
-              </View>
-              <View style={styles.statPill}>
-                <Text style={[styles.statNum, { color: COLOR.green }]}>{stats?.currentWinStreak ?? 0}</Text>
-                <Text style={styles.statLabel}>السلسلة الحالية</Text>
-              </View>
-              <View style={styles.statPill}>
-                <Text style={[styles.statNum, { color: COLOR.amber }]}>{stats?.highestScore ?? 0}</Text>
-                <Text style={styles.statLabel}>أعلى نتيجة</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Element stats */}
-          {elementStatsArray.length > 0 && (
-            <View style={styles.panel}>
-              <Text style={styles.panelTitle}>إحصائيات العناصر</Text>
-              {elementStatsArray.map((el) => {
-                const elColor = ELEMENT_COLORS[el.element] ?? COLOR.gold;
-                const winFrac = el.timesUsed > 0 ? el.wins / el.timesUsed : 0;
-                return (
-                  <View key={el.element} style={styles.elementRow}>
-                    <Text style={[styles.elementName, { color: elColor }]}>{el.element}</Text>
-                    <View style={styles.elementBarTrack}>
-                      <View style={[styles.elementBarFill, { width: `${winFrac * 100}%` as any, backgroundColor: elColor }]} />
-                    </View>
-                    <Text style={styles.elementStats}>{el.wins}W / {el.losses}L</Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-
-          {/* Match history */}
-          {stats && stats.matchHistory.length > 0 && (
-            <View style={styles.panel}>
-              <Text style={styles.panelTitle}>آخر المباريات</Text>
-              {stats.matchHistory.map((match, index) => {
-                const matchColor =
-                  match.winner === 'player' ? COLOR.green :
-                    match.winner === 'bot' ? COLOR.red : COLOR.amber;
-                const matchLabel =
-                  match.winner === 'player' ? 'فوز 🏆' :
-                    match.winner === 'bot' ? 'هزيمة 💀' : 'تعادل 🤝';
-                const diffLabel =
-                  match.difficulty === 1 ? 'سهل' :
-                    match.difficulty === 2 ? 'متوسط' :
-                      match.difficulty === 3 ? 'صعب' :
-                        match.difficulty === 4 ? 'خيالي' :
-                          match.difficulty === 5 ? 'أسطوري' : 'مجهول';
-                return (
-                  <View key={match.id} style={[styles.historyCard, { borderLeftColor: matchColor }]}>
-                    <View style={styles.historyLeft}>
-                      <Text style={[styles.historyResult, { color: matchColor }]}>{matchLabel}</Text>
-                      <Text style={styles.historyDiff}>{diffLabel}</Text>
-                    </View>
-                    <Text style={styles.historyScore}>
-                      {match.playerScore} — {match.botScore}
-                    </Text>
-                    <Text style={styles.historyRounds}>{match.totalRounds} جولة</Text>
-                  </View>
-                );
-              })}
-            </View>
+          ) : (
+            <>
+              {leftContent}
+              {rightContent}
+            </>
           )}
 
           {/* Actions */}
           <View style={styles.actions}>
-            <ProButton label="🗑️ إعادة تعيين" onPress={handleReset} variant="danger" style={styles.actionBtn} />
-            <ProButton label="← رجوع" onPress={() => router.back()} variant="secondary" style={styles.actionBtn} />
+            <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.8}>
+              <Text style={styles.resetBtnText}>🗑️ إعادة تعيين</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
+              <Text style={styles.backBtnText}>← رجوع</Text>
+            </TouchableOpacity>
           </View>
-
         </ScrollView>
       </LuxuryBackground>
     </ScreenContainer>
@@ -182,53 +206,67 @@ const styles = StyleSheet.create({
     gap: SPACE.lg,
   },
 
-  header: { alignItems: 'center', marginBottom: SPACE.sm },
-  title: { fontSize: FONT.hero, color: COLOR.gold, letterSpacing: 1, textAlign: 'center', flexWrap: 'wrap' } as any,
+  header: { alignItems: 'center' },
+  title: { fontSize: FONT.hero, color: COLOR.gold, letterSpacing: 1, textAlign: 'center' },
 
-  panel: { ...GLASS_PANEL, padding: SPACE.xl },
-  panelTitle: { color: COLOR.gold, fontSize: FONT.base, marginBottom: SPACE.lg },
+  twoCol: { flexDirection: 'row', gap: SPACE.lg, alignItems: 'flex-start' },
 
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: SPACE.lg,
-  },
-  statPill: { alignItems: 'center' },
-  statNum: { fontSize: FONT.xxl },
-  statLabel: { color: COLOR.textMuted, fontSize: FONT.xs, marginTop: 2 },
+  panel: { ...GLASS_PANEL, padding: SPACE.xl, gap: SPACE.md },
+  panelTitle: { color: COLOR.gold, fontSize: FONT.base, marginBottom: SPACE.xs },
 
-  winRateRow: { gap: SPACE.xs },
-  winRateLabel: { color: COLOR.textMuted, fontSize: FONT.sm },
-  winRateTrack: {
-    height: 6, borderRadius: RADIUS.full,
-    backgroundColor: 'rgba(228,165,42,0.12)', overflow: 'hidden',
-  },
-  winRateFill: { height: '100%', backgroundColor: COLOR.gold, borderRadius: RADIUS.full },
+  cardsRow: { flexDirection: 'row', gap: SPACE.sm },
 
-  elementRow: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginBottom: SPACE.md,
-  },
-  elementName: { width: 72, fontSize: FONT.sm, textTransform: 'capitalize' },
-  elementBarTrack: {
+  barRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  barLabel: { color: COLOR.textMuted, fontSize: FONT.sm, width: 80 },
+  barTrack: {
     flex: 1, height: 8, borderRadius: RADIUS.full,
     backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden',
   },
-  elementBarFill: { height: '100%', borderRadius: RADIUS.full },
-  elementStats: { color: COLOR.textMuted, fontSize: FONT.xs, width: 64, textAlign: 'right' },
+  barFill: { height: '100%', borderRadius: RADIUS.full },
+  barValue: { fontSize: FONT.sm, width: 44, textAlign: 'right' },
 
-  historyCard: {
+  elRow: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
+    paddingVertical: SPACE.xs,
+  },
+  elEmoji: { fontSize: 18, width: 26, textAlign: 'center' },
+  elName: { width: 44, fontSize: FONT.sm },
+  elTrack: {
+    flex: 1, height: 8, borderRadius: RADIUS.full,
+    backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden',
+  },
+  elFill: { height: '100%', borderRadius: RADIUS.full },
+  elStats: { color: COLOR.textMuted, fontSize: FONT.xs, width: 60, textAlign: 'right' },
+
+  histRow: {
     flexDirection: 'row', alignItems: 'center',
     borderLeftWidth: 3, paddingLeft: SPACE.md,
-    paddingVertical: SPACE.sm, marginBottom: SPACE.sm,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: RADIUS.sm,
+    paddingVertical: SPACE.sm,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: RADIUS.sm,
     gap: SPACE.md,
+    marginBottom: SPACE.xs,
   },
-  historyLeft: { flex: 1 },
-  historyResult: { fontSize: FONT.sm },
-  historyDiff: { color: COLOR.textMuted, fontSize: FONT.xs, marginTop: 2 },
-  historyScore: { color: COLOR.textPrimary, fontSize: FONT.base },
-  historyRounds: { color: COLOR.textMuted, fontSize: FONT.xs, minWidth: 44, textAlign: 'right' },
+  histResult: { fontSize: FONT.sm },
+  histDiff: { color: COLOR.textMuted, fontSize: FONT.xs, marginTop: 2 },
+  histScore: { color: COLOR.textPrimary, fontSize: FONT.base },
+  histRounds: { color: COLOR.textMuted, fontSize: FONT.xs, minWidth: 30, textAlign: 'right' },
 
   actions: { flexDirection: 'row', gap: SPACE.md },
-  actionBtn: { flex: 1 },
+  resetBtn: {
+    flex: 1, paddingVertical: SPACE.lg,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    backgroundColor: 'rgba(248,113,113,0.12)',
+    borderWidth: 1.5, borderColor: 'rgba(248,113,113,0.4)',
+  },
+  resetBtnText: { color: '#f87171', fontSize: FONT.base },
+  backBtn: {
+    flex: 1, paddingVertical: SPACE.lg,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    backgroundColor: 'rgba(228,165,42,0.1)',
+    borderWidth: 1.5, borderColor: 'rgba(228,165,42,0.3)',
+  },
+  backBtnText: { color: COLOR.gold, fontSize: FONT.base },
 });
