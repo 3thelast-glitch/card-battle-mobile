@@ -19,21 +19,12 @@ const LEVELS: {
   desc: string;
   color: string;
 }[] = [
-<<<<<<< HEAD
     { level: 1, label: 'سهل', emoji: '🌱', desc: 'للمبتدئين', color: '#4ade80' },
     { level: 2, label: 'متوسط', emoji: '⚡', desc: 'تحدٍّ معقول', color: '#60a5fa' },
     { level: 3, label: 'صعب', emoji: '🔥', desc: 'يتطلب استراتيجية', color: '#fb923c' },
     { level: 4, label: 'خيالي', emoji: '💎', desc: 'للمحترفين فقط', color: '#c084fc' },
     { level: 5, label: 'أسطوري', emoji: '👑', desc: 'أعلى مستوى ممكن', color: COLOR.gold },
   ];
-=======
-  { level: 1, label: 'سهل',    emoji: '🌱', desc: 'للمبتدئين',           color: '#4ade80' },
-  { level: 2, label: 'متوسط',  emoji: '⚡', desc: 'تحدٍّ معقول',         color: '#60a5fa' },
-  { level: 3, label: 'صعب',    emoji: '🔥', desc: 'يتطلب استراتيجية',   color: '#fb923c' },
-  { level: 4, label: 'خيالي',  emoji: '💎', desc: 'للمحترفين فقط',      color: '#c084fc' },
-  { level: 5, label: 'أسطوري', emoji: '👑', desc: 'أعلى مستوى ممكن',    color: COLOR.gold },
-];
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
 
 export default function DifficultyScreen() {
   const router = useRouter();
@@ -219,8 +210,5 @@ const styles = StyleSheet.create({
   },
   continueBtnText: { fontSize: FONT.xl, color: '#1A0D1A' },
   continueBtnTextDisabled: { color: 'rgba(255,255,255,0.25)' },
-<<<<<<< HEAD
+
 });
-=======
-});
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639

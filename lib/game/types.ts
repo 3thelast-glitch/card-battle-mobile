@@ -240,8 +240,4 @@ export const ELEMENT_WEAKNESSES: Record<Element, Element[]> = {
   water: [],
   lightning: [],
   wind: [],
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639

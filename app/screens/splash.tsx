@@ -19,17 +19,10 @@ import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui
 // ─── Animated entrance wrapper ────────────────────────────────────────────────
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const op = useSharedValue(0);
-<<<<<<< HEAD
   const y = useSharedValue(20);
   useEffect(() => {
     op.value = withDelay(delay, withTiming(1, { duration: 400 }));
     y.value = withDelay(delay, withSpring(0, { damping: 16 }));
-=======
-  const y  = useSharedValue(20);
-  useEffect(() => {
-    op.value = withDelay(delay, withTiming(1,  { duration: 400 }));
-    y.value  = withDelay(delay, withSpring(0, { damping: 16 }));
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
   }, []);
   const s = useAnimatedStyle(() => ({ opacity: op.value, transform: [{ translateY: y.value }] }));
   return <Animated.View style={s}>{children}</Animated.View>;
@@ -87,15 +80,9 @@ export default function SplashScreen() {
   useEffect(() => { loadStats().then(setStats); }, []);
 
   const totalMatches = stats?.totalMatches ?? 0;
-<<<<<<< HEAD
   const totalWins = stats?.totalWins ?? 0;
   const winRate = totalMatches > 0 ? Math.round((totalWins / totalMatches) * 100) : 0;
   const streak = stats?.currentWinStreak ?? 0;
-=======
-  const totalWins    = stats?.totalWins    ?? 0;
-  const winRate      = totalMatches > 0 ? Math.round((totalWins / totalMatches) * 100) : 0;
-  const streak       = stats?.currentWinStreak ?? 0;
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
 
   // ─ Left panel (portrait: top)
   const heroPanel = (
@@ -124,19 +111,11 @@ export default function SplashScreen() {
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>📊 إحصائياتك</Text>
           <View style={styles.statsRow}>
-<<<<<<< HEAD
             <StatPill num={totalWins} label="انتصارات" color={COLOR.green} />
             <View style={styles.divider} />
             <StatPill num={`${winRate}%`} label="معدل الفوز" color={COLOR.amber} />
             <View style={styles.divider} />
             <StatPill num={totalMatches} label="مباريات" color={COLOR.gold} />
-=======
-            <StatPill num={totalWins}      label="انتصارات"    color={COLOR.green} />
-            <View style={styles.divider} />
-            <StatPill num={`${winRate}%`}  label="معدل الفوز"  color={COLOR.amber} />
-            <View style={styles.divider} />
-            <StatPill num={totalMatches}   label="مباريات"     color={COLOR.gold} />
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
             <View style={styles.divider} />
             <StatPill num={stats?.bestWinStreak ?? 0} label="أفضل سلسلة" color="#fb923c" />
           </View>
@@ -154,15 +133,9 @@ export default function SplashScreen() {
       {/* Nav grid */}
       <FadeIn delay={360}>
         <View style={styles.navRow}>
-<<<<<<< HEAD
           <NavBtn icon="📊" label="الإحصائيات" onPress={() => router.push('/screens/stats' as any)} />
           <NavBtn icon="🃏" label="المجموعة" onPress={() => router.push('/screens/cards-gallery' as any)} />
           <NavBtn icon="⚙️" label="الإعدادات" onPress={() => router.push('/screens/settings' as any)} />
-=======
-          <NavBtn icon="📊" label="الإحصائيات"  onPress={() => router.push('/screens/stats'    as any)} />
-          <NavBtn icon="🃏" label="المجموعة"    onPress={() => router.push('/screens/cards-gallery' as any)} />
-          <NavBtn icon="⚙️" label="الإعدادات"   onPress={() => router.push('/screens/settings' as any)} />
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
         </View>
       </FadeIn>
 
@@ -307,8 +280,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     paddingBottom: SPACE.md,
   },
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639

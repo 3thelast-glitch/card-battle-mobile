@@ -18,7 +18,6 @@ import type { DifficultyLevel } from '@/app/screens/difficulty';
 export type BotMode = 'aggressive' | 'balanced' | 'safe';
 
 export interface UtilityBreakdown {
-<<<<<<< HEAD
   winChance: number;
   damage: number;
   element: number;
@@ -42,65 +41,25 @@ export interface BotDecision {
   mode: BotMode;
   score: number;
   breakdown: UtilityBreakdown;
-=======
-  winChance:     number;
-  damage:        number;
-  element:       number;
-  roundPressure: number;
-  saveAbility:   number;
-  risk:          number;
-}
-
-export interface BotMemory {
-  playerWinStreak:       number;
-  playerUsedAbilities:   AbilityType[];
-  playerFavoredElements: Record<string, number>;
-  botLossStreak:         number;
-  totalRoundsPlayed:     number;
-  strongestBotAbility:   AbilityType | null; // يُحفظ لآخر جولة في مستوى 5
-}
-
-export interface BotDecision {
-  useAbility:   boolean;
-  abilityType?: AbilityType;
-  mode:         BotMode;
-  score:        number;
-  breakdown:    UtilityBreakdown;
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
 }
 
 // ──────────────────────────────── Weights ────────────────────────────────
 type WeightMap = Record<keyof UtilityBreakdown, number>;
 
 const WEIGHTS: Record<BotMode, WeightMap> = {
-<<<<<<< HEAD
   aggressive: { winChance: 0.30, damage: 0.28, element: 0.14, roundPressure: 0.14, saveAbility: 0.04, risk: 0.10 },
   balanced: { winChance: 0.34, damage: 0.22, element: 0.14, roundPressure: 0.12, saveAbility: 0.10, risk: 0.08 },
   safe: { winChance: 0.36, damage: 0.16, element: 0.14, roundPressure: 0.10, saveAbility: 0.16, risk: 0.08 },
-=======
-  aggressive: { winChance:0.30, damage:0.28, element:0.14, roundPressure:0.14, saveAbility:0.04, risk:0.10 },
-  balanced:   { winChance:0.34, damage:0.22, element:0.14, roundPressure:0.12, saveAbility:0.10, risk:0.08 },
-  safe:       { winChance:0.36, damage:0.16, element:0.14, roundPressure:0.10, saveAbility:0.16, risk:0.08 },
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
 };
 
 // ──────────────────────────────── Memory ────────────────────────────────
 let _memory: BotMemory = {
-<<<<<<< HEAD
   playerWinStreak: 0,
   playerUsedAbilities: [],
   playerFavoredElements: {},
   botLossStreak: 0,
   totalRoundsPlayed: 0,
   strongestBotAbility: null,
-=======
-  playerWinStreak:       0,
-  playerUsedAbilities:   [],
-  playerFavoredElements: {},
-  botLossStreak:         0,
-  totalRoundsPlayed:     0,
-  strongestBotAbility:   null,
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
 };
 
 export function getBotMemory(): Readonly<BotMemory> { return { ..._memory }; }
@@ -112,11 +71,7 @@ export function updateBotMemory(result: RoundResult, playerUsedAbility?: Ability
     _memory.botLossStreak++;
   } else {
     _memory.playerWinStreak = 0;
-<<<<<<< HEAD
     _memory.botLossStreak = 0;
-=======
-    _memory.botLossStreak   = 0;
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
   }
   const el = result.playerCard.element;
   _memory.playerFavoredElements[el] = (_memory.playerFavoredElements[el] ?? 0) + 1;
@@ -138,15 +93,9 @@ function cardPower(c: Card): number { return c.attack + c.defense + c.speed; }
 
 function cardPowerAgainst(attacker: Card, defender: Card): number {
   const base = cardPower(attacker);
-<<<<<<< HEAD
   const adv = getElementAdvantage(attacker.element, defender.element);
   if (adv === 'strong') return base * 1.5;
   if (adv === 'weak') return base * 0.7;
-=======
-  const adv  = getElementAdvantage(attacker.element, defender.element);
-  if (adv === 'strong') return base * 1.5;
-  if (adv === 'weak')   return base * 0.7;
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
   return base;
 }
 
@@ -156,7 +105,6 @@ export function chooseBotMode(
   currentRound: number, totalRounds: number,
   difficulty: DifficultyLevel = 3,
 ): BotMode {
-<<<<<<< HEAD
   const diff = botScore - playerScore;
   const roundsLeft = totalRounds - currentRound;
   // مستوى 5 يتحول للـ mode أسرع (بفارق 1 بدل 2)
@@ -166,30 +114,14 @@ export function chooseBotMode(
   if (diff <= aggressiveThreshold) return 'aggressive';
   if (diff >= safeGap && roundsLeft <= 2) return 'safe';
   if (diff >= 1 && roundsLeft <= 2) return 'safe';
-=======
-  const diff       = botScore - playerScore;
-  const roundsLeft = totalRounds - currentRound;
-  // مستوى 5 يتحول للـ mode أسرع (بفارق 1 بدل 2)
-  const aggressiveThreshold = difficulty >= 5 ? -1 : -2;
-  const safeGap             = difficulty >= 5 ?  1 :  2;
-
-  if (diff <= aggressiveThreshold)           return 'aggressive';
-  if (diff >= safeGap && roundsLeft <= 2)    return 'safe';
-  if (diff >= 1       && roundsLeft <= 2)    return 'safe';
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
   return 'balanced';
 }
 
 // ──────────────────────────────── Utility scoring ────────────────────────────────
 function scoreUtility(b: UtilityBreakdown, mode: BotMode): number {
   const w = WEIGHTS[mode];
-<<<<<<< HEAD
   return b.winChance * w.winChance + b.damage * w.damage + b.element * w.element
     + b.roundPressure * w.roundPressure + b.saveAbility * w.saveAbility + b.risk * w.risk;
-=======
-  return b.winChance*w.winChance + b.damage*w.damage + b.element*w.element
-       + b.roundPressure*w.roundPressure + b.saveAbility*w.saveAbility + b.risk*w.risk;
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
 }
 
 function evaluateCardVs(
@@ -197,7 +129,6 @@ function evaluateCardVs(
   currentRound: number, totalRounds: number,
   botScore: number, playerScore: number, mode: BotMode,
 ): UtilityBreakdown {
-<<<<<<< HEAD
   const botPower = cardPowerAgainst(botCard, playerCard);
   const playerPower = cardPowerAgainst(playerCard, botCard);
   const adv = getElementAdvantage(botCard.element, playerCard.element);
@@ -215,25 +146,6 @@ function evaluateCardVs(
   const roundPressure = clamp(urgencyBase);
   const saveAbility = winChance > 0.70 ? 0.8 : winChance > 0.55 ? 0.5 : 0.2;
   const risk = mode === 'aggressive' ? clamp(1 - winChance + 0.3) : clamp(1 - winChance);
-=======
-  const botPower    = cardPowerAgainst(botCard, playerCard);
-  const playerPower = cardPowerAgainst(playerCard, botCard);
-  const adv         = getElementAdvantage(botCard.element, playerCard.element);
-  const roundsLeft  = totalRounds - currentRound;
-  const totalPower  = botPower + playerPower;
-
-  const winChance     = totalPower > 0 ? clamp(botPower / totalPower) : 0.5;
-  const maxPossible   = Math.max(...ALL_CARDS.map(c => c.attack + c.defense + c.speed)) * 1.5;
-  const damage        = clamp(botPower / maxPossible);
-  const element       = adv === 'strong' ? 1.0 : adv === 'weak' ? 0.0 : 0.5;
-  const scoreDiff     = Math.abs(botScore - playerScore);
-  const urgencyBase   = scoreDiff >= 2 && roundsLeft <= 2 ? 1.0
-                      : scoreDiff >= 1 && roundsLeft <= 3 ? 0.75
-                      : roundsLeft <= 2 ? 0.6 : 0.4;
-  const roundPressure = clamp(urgencyBase);
-  const saveAbility   = winChance > 0.70 ? 0.8 : winChance > 0.55 ? 0.5 : 0.2;
-  const risk          = mode === 'aggressive' ? clamp(1 - winChance + 0.3) : clamp(1 - winChance);
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
 
   return { winChance, damage, element, roundPressure, saveAbility, risk };
 }
@@ -246,7 +158,6 @@ export function evaluateAbilityTiming(
   mode: BotMode, memory: BotMemory,
 ): number {
   const roundsLeft = totalRounds - currentRound;
-<<<<<<< HEAD
   const scoreDiff = botScore - playerScore;
   const losing = scoreDiff < 0;
   const closeMatch = Math.abs(scoreDiff) <= 1;
@@ -278,39 +189,6 @@ export function evaluateAbilityTiming(
     return 0.35;
   }
   if (['DoubleOrNothing', 'Dilemma', 'Suicide'].includes(ability)) {
-=======
-  const scoreDiff  = botScore - playerScore;
-  const losing     = scoreDiff < 0;
-  const closeMatch = Math.abs(scoreDiff) <= 1;
-
-  if (['LogicalEncounter','Eclipse','Trap','Pool'].includes(ability)) {
-    if (roundsLeft < 2)  return 0.1;
-    if (roundsLeft <= 4) return losing || closeMatch ? 0.85 : 0.55;
-    return 0.35;
-  }
-  if (['Rescue','Popularity','Penetration'].includes(ability)) {
-    if (losing && roundsLeft <= 3) return 0.90;
-    if (losing)                    return 0.70;
-    if (closeMatch)                return 0.50;
-    return 0.20;
-  }
-  if (['Protection','Shield','Fortify'].includes(ability)) {
-    if (losing && roundsLeft <= 2) return 0.80;
-    if (closeMatch)                return 0.60;
-    return 0.30;
-  }
-  if (['Reinforcement','Wipe','HalvePoints','Disaster','Explosion','DoublePoints'].includes(ability)) {
-    if (mode === 'aggressive') return losing ? 0.92 : 0.70;
-    if (mode === 'balanced')   return closeMatch ? 0.65 : 0.40;
-    return 0.25;
-  }
-  if (['Recall','Arise','Revive','Shambles','Sacrifice'].includes(ability)) {
-    if (losing && closeMatch) return 0.75;
-    if (losing)               return 0.60;
-    return 0.35;
-  }
-  if (['DoubleOrNothing','Dilemma','Suicide'].includes(ability)) {
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
     if (mode === 'aggressive' && losing) return 0.80;
     return 0.30;
   }
@@ -340,7 +218,6 @@ function abilityNoise(difficulty: DifficultyLevel): number {
 // ──────────────────────────────── Main decision engine ────────────────────────────────
 export function decideBotAbility(
   botAbilities: AbilityState[],
-<<<<<<< HEAD
   playerCard: Card,
   gameState: GameState,
   difficulty: DifficultyLevel,
@@ -349,16 +226,6 @@ export function decideBotAbility(
   const mode = chooseBotMode(playerScore, botScore, currentRound, totalRounds, difficulty);
   const memory = getBotMemory();
   const botCard = gameState.botDeck[currentRound];
-=======
-  playerCard:   Card,
-  gameState:    GameState,
-  difficulty:   DifficultyLevel,
-): BotDecision {
-  const { currentRound, totalRounds, botScore, playerScore } = gameState;
-  const mode     = chooseBotMode(playerScore, botScore, currentRound, totalRounds, difficulty);
-  const memory   = getBotMemory();
-  const botCard  = gameState.botDeck[currentRound];
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
 
   const noAbilityBreakdown = evaluateCardVs(
     botCard, playerCard, currentRound, totalRounds, botScore, playerScore, mode,
@@ -396,16 +263,11 @@ export function decideBotAbility(
 
     if (effectiveScore > bestAbilityScore) {
       bestAbilityScore = effectiveScore;
-<<<<<<< HEAD
       bestAbility = ab.type;
-=======
-      bestAbility      = ab.type;
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
     }
   }
 
   const threshold = abilityThreshold(mode, difficulty);
-<<<<<<< HEAD
   const noise = abilityNoise(difficulty);
   const finalUse = bestAbility !== undefined
     && (bestAbilityScore + noise) > threshold;
@@ -416,18 +278,6 @@ export function decideBotAbility(
     mode,
     score: bestAbilityScore,
     breakdown: noAbilityBreakdown,
-=======
-  const noise     = abilityNoise(difficulty);
-  const finalUse  = bestAbility !== undefined
-                  && (bestAbilityScore + noise) > threshold;
-
-  return {
-    useAbility:  finalUse,
-    abilityType: finalUse ? bestAbility : undefined,
-    mode,
-    score:       bestAbilityScore,
-    breakdown:   noAbilityBreakdown,
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
   };
 }
 
@@ -459,31 +309,19 @@ function pickBalancedHard(count: number): Card[] {
  * مع عشوائية: 4 → 5٪، 5 → 3٪
  */
 function pickSmart(count: number, playerCards: Card[], randomnessFraction: number): Card[] {
-<<<<<<< HEAD
   const memory = getBotMemory();
-=======
-  const memory   = getBotMemory();
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
   const selected: Card[] = [];
 
   for (let i = 0; i < count; i++) {
     const playerCard = playerCards[i % playerCards.length];
-<<<<<<< HEAD
     const pool = ALL_CARDS.filter(c => !selected.some(s => s.id === c.id));
-=======
-    const pool       = ALL_CARDS.filter(c => !selected.some(s => s.id === c.id));
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
 
     // عشوائية خفيفة: بنسبة randomnessFraction يختار عشوائياً من أفضل 5 بدل الأول
     const scored = pool.map(card => ({
       card,
       score: cardPowerAgainst(card, playerCard)
         + (card.element !== playerCard.element
-<<<<<<< HEAD
           && (memory.playerFavoredElements[playerCard.element] ?? 0) >= 2 ? 10 : 0),
-=======
-           && (memory.playerFavoredElements[playerCard.element] ?? 0) >= 2 ? 10 : 0),
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
     }));
     scored.sort((a, b) => b.score - a.score);
 
@@ -500,7 +338,7 @@ function pickSmart(count: number, playerCards: Card[], randomnessFraction: numbe
 }
 
 export function getBotCards(
-  count:      number,
+  count: number,
   difficulty: DifficultyLevel,
   playerCards?: Card[],
 ): Card[] {

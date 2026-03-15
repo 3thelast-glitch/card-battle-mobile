@@ -18,7 +18,7 @@ export default function RoundsConfigScreen() {
   const isLandscape = width > height;
 
   const { setTotalRounds, setAbilitiesEnabled } = useGame();
-  const [rounds, setRounds]           = useState(5);
+  const [rounds, setRounds] = useState(5);
   const [withAbility, setWithAbility] = useState(false);
 
   const handleContinue = () => {
@@ -259,8 +259,5 @@ const styles = StyleSheet.create({
     ...SHADOW.gold,
   },
   continueBtnText: { fontSize: FONT.xl, color: '#1A0D1A' },
-<<<<<<< HEAD
+
 });
-=======
-});
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639

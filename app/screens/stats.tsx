@@ -12,21 +12,12 @@ import { PlayerStats } from '@/lib/stats/types';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
 
 const ELEMENT_META: Record<string, { color: string; emoji: string; label: string }> = {
-<<<<<<< HEAD
   fire: { color: '#ef4444', emoji: '🔥', label: 'نار' },
   ice: { color: '#38bdf8', emoji: '❄️', label: 'جليد' },
   water: { color: '#3b82f6', emoji: '💧', label: 'ماء' },
   earth: { color: '#84cc16', emoji: '🌍', label: 'أرض' },
   lightning: { color: '#facc15', emoji: '⚡', label: 'برق' },
   wind: { color: '#a78bfa', emoji: '🌪️', label: 'ريح' },
-=======
-  fire:      { color: '#ef4444', emoji: '🔥', label: 'نار' },
-  ice:       { color: '#38bdf8', emoji: '❄️', label: 'جليد' },
-  water:     { color: '#3b82f6', emoji: '💧', label: 'ماء' },
-  earth:     { color: '#84cc16', emoji: '🌍', label: 'أرض' },
-  lightning: { color: '#facc15', emoji: '⚡', label: 'برق' },
-  wind:      { color: '#a78bfa', emoji: '🌪️', label: 'ريح' },
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
 };
 
 function StatCard({ value, label, color, emoji }: { value: string | number; label: string; color: string; emoji: string }) {
@@ -59,11 +50,7 @@ export default function StatsScreen() {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-<<<<<<< HEAD
   const [stats, setStats] = useState<PlayerStats | null>(null);
-=======
-  const [stats, setStats]   = useState<PlayerStats | null>(null);
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { load(); }, []);
@@ -95,17 +82,10 @@ export default function StatsScreen() {
       <View style={styles.panel}>
         <Text style={styles.panelTitle}>📊 نظرة عامة</Text>
         <View style={styles.cardsRow}>
-<<<<<<< HEAD
           <StatCard value={stats?.totalMatches ?? 0} label="مباريات" color={COLOR.gold} emoji="🎮" />
           <StatCard value={stats?.totalWins ?? 0} label="انتصارات" color={COLOR.green} emoji="🏆" />
           <StatCard value={stats?.totalLosses ?? 0} label="هزائم" color={COLOR.red} emoji="💀" />
           <StatCard value={stats?.totalDraws ?? 0} label="تعادلات" color={COLOR.amber} emoji="🤝" />
-=======
-          <StatCard value={stats?.totalMatches ?? 0} label="مباريات"    color={COLOR.gold}    emoji="🎮" />
-          <StatCard value={stats?.totalWins    ?? 0} label="انتصارات"   color={COLOR.green}   emoji="🏆" />
-          <StatCard value={stats?.totalLosses  ?? 0} label="هزائم"      color={COLOR.red}     emoji="💀" />
-          <StatCard value={stats?.totalDraws   ?? 0} label="تعادلات"    color={COLOR.amber}   emoji="🤝" />
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
         </View>
         {/* Win rate bar */}
         <View style={styles.barRow}>
@@ -121,15 +101,9 @@ export default function StatsScreen() {
       <View style={styles.panel}>
         <Text style={styles.panelTitle}>🔥 أفضل النتائج</Text>
         <View style={styles.cardsRow}>
-<<<<<<< HEAD
           <StatCard value={stats?.bestWinStreak ?? 0} label="أطول سلسلة" color={COLOR.gold} emoji="👑" />
           <StatCard value={stats?.currentWinStreak ?? 0} label="السلسلة الحالية" color={COLOR.amber} emoji="🔥" />
           <StatCard value={stats?.highestScore ?? 0} label="أعلى نتيجة" color={COLOR.green} emoji="⭐" />
-=======
-          <StatCard value={stats?.bestWinStreak    ?? 0} label="أطول سلسلة"   color={COLOR.gold}    emoji="👑" />
-          <StatCard value={stats?.currentWinStreak ?? 0} label="السلسلة الحالية" color={COLOR.amber}  emoji="🔥" />
-          <StatCard value={stats?.highestScore     ?? 0} label="أعلى نتيجة"   color={COLOR.green}  emoji="⭐" />
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
         </View>
       </View>
     </>
@@ -164,19 +138,11 @@ export default function StatsScreen() {
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>📜 آخر المباريات</Text>
           {stats.matchHistory.slice(0, 10).map((match) => {
-<<<<<<< HEAD
             const isWin = match.winner === 'player';
             const isDraw = match.winner === 'draw';
             const color = isWin ? COLOR.green : isDraw ? COLOR.amber : COLOR.red;
             const label = isWin ? 'فوز 🏆' : isDraw ? 'تعادل 🤝' : 'هزيمة 💀';
             const diff = ['', 'سهل', 'متوسط', 'صعب', 'خيالي', 'أسطوري'][match.difficulty ?? 0] ?? '?';
-=======
-            const isWin  = match.winner === 'player';
-            const isDraw = match.winner === 'draw';
-            const color  = isWin ? COLOR.green : isDraw ? COLOR.amber : COLOR.red;
-            const label  = isWin ? 'فوز 🏆' : isDraw ? 'تعادل 🤝' : 'هزيمة 💀';
-            const diff   = ['','سهل','متوسط','صعب','خيالي','أسطوري'][match.difficulty ?? 0] ?? '?';
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
             return (
               <View key={match.id} style={[styles.histRow, { borderLeftColor: color }]}>
                 <View style={{ flex: 1 }}>
@@ -282,13 +248,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.xs,
   },
   histResult: { fontSize: FONT.sm },
-<<<<<<< HEAD
   histDiff: { color: COLOR.textMuted, fontSize: FONT.xs, marginTop: 2 },
   histScore: { color: COLOR.textPrimary, fontSize: FONT.base },
-=======
-  histDiff:   { color: COLOR.textMuted, fontSize: FONT.xs, marginTop: 2 },
-  histScore:  { color: COLOR.textPrimary, fontSize: FONT.base },
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
   histRounds: { color: COLOR.textMuted, fontSize: FONT.xs, minWidth: 30, textAlign: 'right' },
 
   actions: { flexDirection: 'row', gap: SPACE.md },
@@ -308,8 +269,4 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(228,165,42,0.3)',
   },
   backBtnText: { color: COLOR.gold, fontSize: FONT.base },
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> 765f6de734d6ad6d1dd61f8dfa220559988ac639
