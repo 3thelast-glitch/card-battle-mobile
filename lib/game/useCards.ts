@@ -6,8 +6,8 @@
  * reading ALL_CARDS directly, so gallery changes propagate everywhere.
  *
  * Usage:
- * const cards = useCards();           // all cards, edits applied
- * const cards = useCards([id1,id2]);  // filtered subset
+ *   const cards = useCards();           // all cards, edits applied
+ *   const cards = useCards([id1,id2]);  // filtered subset
  */
 
 import { useState, useEffect } from 'react';
