@@ -135,13 +135,15 @@ export const abilityExecutors: Record<AbilityType, AbilityExecutor> = {
   Subhan: (state, isPlayer) => ({ newEffects: [] }),
   Propaganda: (state, isPlayer) => ({ newEffects: [] }),
 
+  // Protection → يرفع الدفاع
   Protection: (state, isPlayer) => {
     const target = isPlayer ? 'player' : 'bot';
-    return { newEffects: [{ type: 'buff', target, stat: 'hp', value: 1, roundsLeft: 1, sourceAbility: 'Protection' }] };
+    return { newEffects: [{ type: 'buff', target, stat: 'defense', value: 5, roundsLeft: 1, sourceAbility: 'Protection' }] };
   },
+  // HalvePoints → يخصم نصف هجوم ودفاع الخصم (منطق halvePoints في cards-data)
   HalvePoints: (state, isPlayer) => {
     const target = isPlayer ? 'bot' : 'player';
-    return { newEffects: [{ type: 'debuff', target, stat: 'all', value: -50, roundsLeft: 1, sourceAbility: 'HalvePoints' }] };
+    return { newEffects: [{ type: 'debuff', target, stat: 'attack', value: -50, roundsLeft: 1, sourceAbility: 'HalvePoints' }] };
   },
   Seal: (state, isPlayer) => {
     const target = isPlayer ? 'bot' : 'player';
@@ -150,11 +152,11 @@ export const abilityExecutors: Record<AbilityType, AbilityExecutor> = {
   StarSuperiority: (state, isPlayer) => {
     const target = isPlayer ? 'player' : 'bot';
     const rem = state.totalRounds - state.currentRound;
-    return { newEffects: [{ type: 'buff', target, stat: 'all', value: 3, roundsLeft: rem, sourceAbility: 'StarSuperiority' }] };
+    return { newEffects: [{ type: 'buff', target, stat: 'attack', value: 3, roundsLeft: rem, sourceAbility: 'StarSuperiority' }] };
   },
   Reduction: (state, isPlayer) => {
     const target = isPlayer ? 'bot' : 'player';
-    return { newEffects: [{ type: 'debuff', target, stat: 'all', value: -2, roundsLeft: 1, sourceAbility: 'Reduction' }] };
+    return { newEffects: [{ type: 'debuff', target, stat: 'defense', value: -2, roundsLeft: 1, sourceAbility: 'Reduction' }] };
   },
   Eclipse: (state, isPlayer) => {
     const target = isPlayer ? 'bot' : 'player';
@@ -162,7 +164,7 @@ export const abilityExecutors: Record<AbilityType, AbilityExecutor> = {
   },
   Avatar: (state, isPlayer) => {
     const target = isPlayer ? 'player' : 'bot';
-    return { newEffects: [{ type: 'buff', target, stat: 'all', value: 2, roundsLeft: 1, sourceAbility: 'Avatar' }] };
+    return { newEffects: [{ type: 'buff', target, stat: 'attack', value: 2, roundsLeft: 1, sourceAbility: 'Avatar' }] };
   },
   Penetration: (state, isPlayer) => {
     const target = isPlayer ? 'bot' : 'player';
@@ -202,23 +204,23 @@ export const abilityExecutors: Record<AbilityType, AbilityExecutor> = {
   Merge: () => ({ newEffects: [] }),
   DoubleNextCards: (state, isPlayer) => {
     const target = isPlayer ? 'player' : 'bot';
-    return { newEffects: [{ type: 'buff', target, stat: 'all', value: 2, roundsLeft: 2, sourceAbility: 'DoubleNextCards' }] };
+    return { newEffects: [{ type: 'buff', target, stat: 'attack', value: 2, roundsLeft: 2, sourceAbility: 'DoubleNextCards' }] };
   },
   Dilemma: () => ({ newEffects: [] }),
   Pool: () => ({ newEffects: [] }),
   Shield: (state, isPlayer) => {
     const target = isPlayer ? 'player' : 'bot';
-    return { newEffects: [{ type: 'buff', target, stat: 'all', value: 5, roundsLeft: 1, sourceAbility: 'Shield' }] };
+    return { newEffects: [{ type: 'buff', target, stat: 'defense', value: 5, roundsLeft: 1, sourceAbility: 'Shield' }] };
   },
   SwapClass: () => ({ newEffects: [] }),
   Skip: () => ({ newEffects: [] }),
   AddElement: () => ({ newEffects: [] }),
   DoublePoints: (state, isPlayer) => {
     const target = isPlayer ? 'player' : 'bot';
-    return { newEffects: [{ type: 'buff', target, stat: 'all', value: 100, roundsLeft: 1, sourceAbility: 'DoublePoints' }] };
+    return { newEffects: [{ type: 'buff', target, stat: 'attack', value: 100, roundsLeft: 1, sourceAbility: 'DoublePoints' }] };
   },
   ElementalMastery: (state, isPlayer) => {
     const target = isPlayer ? 'player' : 'bot';
-    return { newEffects: [{ type: 'buff', target, stat: 'all', value: 4, roundsLeft: state.totalRounds - state.currentRound, sourceAbility: 'ElementalMastery' }] };
+    return { newEffects: [{ type: 'buff', target, stat: 'attack', value: 4, roundsLeft: state.totalRounds - state.currentRound, sourceAbility: 'ElementalMastery' }] };
   },
 };

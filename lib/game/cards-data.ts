@@ -510,7 +510,7 @@ export const CARDS_BATCH_1: Card[] = [
     rarity: 'rare', stars: 3,
     animationPreset: 'fire',
   },
-  {
+{
     id: 'yamcha',
     name: 'Yamcha',
     nameAr: 'يامتشا',
@@ -1020,7 +1020,7 @@ export const CARDS_BATCH_1: Card[] = [
     animationPreset: 'fire',
     cardEffects: ['poison'],
   },
-  {
+{
     id: 'yamcha',
     name: 'Yamcha',
     nameAr: 'يامتشا',
@@ -2557,7 +2557,7 @@ export const CARDS_BATCH_1: Card[] = [
     animationPreset: 'ice',
     cardEffects: ['taunt'],
   },
-  {
+    {
     id: 'sif_the_wolf',
     name: 'Sif the Wolf',
     nameAr: 'سيف الذئب',

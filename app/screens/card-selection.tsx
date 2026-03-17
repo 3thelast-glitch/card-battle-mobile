@@ -9,12 +9,12 @@ import { RotateHintScreen } from '@/components/game/RotateHintScreen';
 import { useGame } from '@/lib/game/game-context';
 import { useCards } from '@/lib/game/useCards';
 import { Card, AbilityType } from '@/lib/game/types';
-import { ALL_ABILITIES, DISABLED_ABILITIES_KEY } from '@/lib/game/abilities';
+import { ALL_ABILITIES, NAME_TO_ABILITY_TYPE } from '@/lib/game/abilities';
+import { getDisabledAbilityIds } from '@/lib/game/abilities-store';
 import { AbilityCard, AbilityData } from '@/components/game/ability-card';
 import { abilities as allAbilitiesData } from '@/data/abilities';
 import { ProButton } from '@/components/ui/ProButton';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLOR, SPACE, RADIUS, FONT_FAMILY } from '@/components/ui/design-tokens';
+import { SPACE, RADIUS } from '@/components/ui/design-tokens';
 import {
   useLandscapeLayout,
   useCardSize,
@@ -22,30 +22,41 @@ import {
   LAYOUT_PADDING,
 } from '@/utils/layout';
 
+/** تحويل AbilityType إلى nameEn بإضافة مسافات */
 function abilityTypeToNameEn(type: AbilityType): string {
-  return type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  return type
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+}
+
+/** هل هذه القدرة موجودة في data/abilities? */
+function isAbilityInData(type: AbilityType): boolean {
+  const nameEn = abilityTypeToNameEn(type);
+  return allAbilitiesData.some(a => a.nameEn.toLowerCase() === nameEn.toLowerCase());
 }
 
 function resolveAbilityData(type: AbilityType): AbilityData {
   const nameEn = abilityTypeToNameEn(type);
   const found = allAbilitiesData.find(a => a.nameEn.toLowerCase() === nameEn.toLowerCase());
-  if (found) return { id: found.id, nameEn: found.nameEn, nameAr: found.nameAr, description: found.description, icon: found.icon, rarity: found.rarity, isActive: found.isActive };
+  if (found) return {
+    id: found.id, nameEn: found.nameEn, nameAr: found.nameAr,
+    description: found.description, icon: found.icon,
+    rarity: found.rarity, isActive: found.isActive,
+  };
   return { id: type, nameEn, nameAr: type, description: '', icon: null, rarity: 'Common' };
 }
 
-/** اختيار قدرات عشوائية مع استثناء المعطّلة مباشرةً من AsyncStorage */
-async function pickRandomAbilities(count: number): Promise<AbilityType[]> {
-  try {
-    const raw = await AsyncStorage.getItem(DISABLED_ABILITIES_KEY);
-    const disabledArr: AbilityType[] = raw ? JSON.parse(raw) : [];
-    const disabledSet = new Set(disabledArr);
-    const available = ALL_ABILITIES.filter(a => !disabledSet.has(a));
-    const shuffled = [...available].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, Math.min(count, shuffled.length));
-  } catch {
-    const shuffled = [...ALL_ABILITIES].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
-  }
+function idsToAbilityTypes(ids: Set<number>): Set<AbilityType> {
+  const result = new Set<AbilityType>();
+  ids.forEach(id => {
+    const found = allAbilitiesData.find(a => a.id === id);
+    if (!found) return;
+    const mapped = NAME_TO_ABILITY_TYPE[found.nameEn];
+    if (mapped) { result.add(mapped); return; }
+    const asType = found.nameEn.replace(/\s+/g, '') as AbilityType;
+    if (ALL_ABILITIES.includes(asType)) result.add(asType);
+  });
+  return result;
 }
 
 interface CardRound { card: Card; round: number | null; }
@@ -68,10 +79,15 @@ export default function CardSelectionScreen() {
   const { cardW: modalCardW, cardH: modalCardH } = useCardSize('modal');
 
   useEffect(() => {
-    AsyncStorage.getItem('disabledAbilities').then(raw => {
-      const disabled = new Set(raw ? JSON.parse(raw) : []);
-      const available = ALL_ABILITIES.filter(a => !disabled.has(a));
-      const picked = available.sort(() => Math.random() - 0.5).slice(0, 3);
+    getDisabledAbilityIds().then(disabledIds => {
+      const disabledTypes = idsToAbilityTypes(disabledIds);
+
+      const available = ALL_ABILITIES.filter(a =>
+        !disabledTypes.has(a) &&  // ليست معطّلة
+        isAbilityInData(a)         // موجودة في data/abilities (= ظاهرة في screens/abilities)
+      );
+
+      const picked = [...available].sort(() => Math.random() - 0.5).slice(0, 3);
       const shuffled = [...allCards].sort(() => Math.random() - 0.5);
       setCardRounds(shuffled.slice(0, totalRounds).map(card => ({ card, round: null })));
       setAssignedAbilities(picked);
@@ -120,10 +136,7 @@ export default function CardSelectionScreen() {
       activeOpacity={0.8}
     >
       <View style={styles.cardWrapper}>
-        <LuxuryCharacterCardAnimated
-          card={item.card}
-          style={{ width: gridCardW, height: gridCardH }}
-        />
+        <LuxuryCharacterCardAnimated card={item.card} style={{ width: gridCardW, height: gridCardH }} />
         {item.round !== null ? (
           <View style={styles.roundOverlay}>
             <View style={styles.roundBadge}>
@@ -148,16 +161,16 @@ export default function CardSelectionScreen() {
           <TouchableOpacity style={styles.backBtn} onPress={() => router.push('/screens/leaderboard' as any)} activeOpacity={0.7}>
             <Text style={styles.backBtnText}>← رجوع</Text>
           </TouchableOpacity>
-
           <View style={styles.titleGroup}>
             <Text style={styles.title}>رتّب بطاقاتك</Text>
             <Text style={styles.subtitle}>{cardRounds.filter(c => c.round).length} / {totalRounds} مُعيّنة</Text>
           </View>
-
           <View style={styles.rightActionGroup}>
             <TouchableOpacity style={styles.abilitiesBtn} onPress={() => setIsAbilitiesModalOpen(true)} activeOpacity={0.7}>
               <Text style={styles.abilitiesBtnText}>⚡ القدرات</Text>
-              <View style={styles.abilitiesBadge}><Text style={styles.abilitiesBadgeText}>{assignedAbilities.length}/3</Text></View>
+              <View style={styles.abilitiesBadge}>
+                <Text style={styles.abilitiesBadgeText}>{assignedAbilities.length}/3</Text>
+              </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.shuffleBtn} onPress={handleShuffleCards} activeOpacity={0.7}>
               <Text style={styles.shuffleBtnText}>🔀</Text>
@@ -195,7 +208,12 @@ export default function CardSelectionScreen() {
               {Array.from({ length: totalRounds }, (_, i) => i + 1).map(round => {
                 const alreadyUsed = cardRounds.some((cr, idx) => cr.round === round && idx !== focusedCardIndex);
                 return (
-                  <TouchableOpacity key={round} style={[styles.focusRoundBtn, alreadyUsed && styles.focusRoundBtnUsed]} onPress={() => handleRoundSelect(round)} activeOpacity={0.7}>
+                  <TouchableOpacity
+                    key={round}
+                    style={[styles.focusRoundBtn, alreadyUsed && styles.focusRoundBtnUsed]}
+                    onPress={() => handleRoundSelect(round)}
+                    activeOpacity={0.7}
+                  >
                     <View style={[
                       styles.focusRoundBadge,
                       alreadyUsed && styles.focusRoundBadgeUsed,
@@ -207,7 +225,6 @@ export default function CardSelectionScreen() {
                 );
               })}
             </View>
-
             {focusedCardIndex !== null && cardRounds[focusedCardIndex] && (
               <View style={styles.focusModalRightCol}>
                 <LuxuryCharacterCardAnimated
@@ -230,17 +247,29 @@ export default function CardSelectionScreen() {
                 <Text style={{ color: '#94a3b8', fontSize: 20 }}>✕</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 8, paddingVertical: 8 }}>
-              {assignedAbilities.map((abilityType, index) => {
-                const data = resolveAbilityData(abilityType);
-                return (
-                  <AbilityCard
-                    key={index}
-                    ability={{ id: index, nameEn: data.nameEn, nameAr: data.nameAr, description: data.description, icon: data.icon, rarity: data.rarity ?? 'Common', isActive: true }}
-                    showActionButtons={false}
-                  />
-                );
-              })}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingHorizontal: 8, paddingVertical: 8 }}
+            >
+              {assignedAbilities.length > 0 ? (
+                assignedAbilities.map((abilityType, index) => {
+                  const data = resolveAbilityData(abilityType);
+                  return (
+                    <AbilityCard
+                      key={index}
+                      ability={{
+                        id: index, nameEn: data.nameEn, nameAr: data.nameAr,
+                        description: data.description, icon: data.icon,
+                        rarity: data.rarity ?? 'Common', isActive: true,
+                      }}
+                      showActionButtons={false}
+                    />
+                  );
+                })
+              ) : (
+                <Text style={{ color: '#64748b', paddingHorizontal: 8, paddingVertical: 16 }}>لا توجد قدرات متاحة</Text>
+              )}
             </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>

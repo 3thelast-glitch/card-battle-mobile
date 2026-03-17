@@ -1,17 +1,14 @@
 /**
- * BattleScreen — Professional Arena Redesign
+ * BattleScreen — Professional Arena
  *
  * Layout (landscape-only):
- * [PLAYER SIDE] | [CENTER COMMAND] | [BOT SIDE]
+ *   [PLAYER SIDE] | [CENTER COMMAND] | [BOT SIDE]
  *
- * Improvements:
- * • Cinematic top HUD with health-style score bars
- * • Arena panels with gradient border glow per side
- * • Center column: VS badge, preview chip, attack CTA, abilities CTA
- * • Round progress bar below HUD
- * • Advantage badge floats over the card that has advantage
- * • History & abilities modals redesigned
- * • All DraggableResizable / edit-mode logic preserved
+ * Changes:
+ *  - Fixed all merge conflicts
+ *  - Added ActiveEffectsBar (buffs/nerfs visible under HUD)
+ *  - Added choice modals for: Propaganda, AddElement, SwapClass, Dilemma
+ *  - Effect chips now show descriptive Arabic labels (e.g. هجوم -2, جميع المحاربين +2)
  */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
@@ -38,7 +35,7 @@ import { BattleResultOverlay } from '@/components/game/BattleResultOverlay';
 import { RotateHintScreen } from '@/components/game/RotateHintScreen';
 import { useLandscapeLayout, LAYOUT_PADDING, CARD_WIDTH_FACTOR } from '@/utils/layout';
 import { useGame } from '@/lib/game/game-context';
-import { ELEMENT_EMOJI, ElementAdvantage } from '@/lib/game/types';
+import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass } from '@/lib/game/types';
 import { getAbilityNameAr, getAbilityDescription } from '@/lib/game/ability-names';
 import { AbilityCard } from '@/components/game/ability-card';
 import PredictionModal from '@/app/components/modals/PredictionModal';
@@ -56,6 +53,69 @@ const advantageColor = (a: ElementAdvantage) =>
   a === 'strong' ? '#4ade80' : a === 'weak' ? '#f87171' : '#a0a0a0';
 const advantageLabel = (a: ElementAdvantage) =>
   a === 'strong' ? '⬆️ قوي' : a === 'weak' ? '⬇️ ضعيف' : '';
+
+const ALL_ELEMENTS: Element[] = ['fire', 'ice', 'water', 'earth', 'lightning', 'wind'];
+const ELEMENT_LABELS: Record<Element, string> = {
+  fire: '🔥 نار', ice: '❄️ جليد', water: '💧 ماء',
+  earth: '🌍 أرض', lightning: '⚡ برق', wind: '💨 ريح',
+};
+const ALL_CLASSES: CardClass[] = ['warrior', 'knight', 'mage', 'archer', 'berserker', 'paladin'];
+const CLASS_LABELS: Record<CardClass, string> = {
+  warrior: '⚔️ محارب', knight: '🛡️ فارس', mage: '🔮 ساحر',
+  archer: '🏹 رامي', berserker: '🗡️ بيرسركر', paladin: '💪 بالادين',
+};
+const CLASS_LABELS_SHORT: Record<string, string> = {
+  warrior: 'المحاربين', knight: 'الفرسان', mage: 'السحرة',
+  archer: 'الرماة', berserker: 'البيرسركر', paladin: 'البالادين',
+};
+const STAT_LABELS: Record<string, string> = {
+  attack: 'هجوم', defense: 'دفاع', all: 'الكل', hp: 'صحة',
+};
+
+// ─── Effect label builder ───────────────────────────────────────────────────
+function getEffectLabel(effect: any): string {
+  const d = effect.data as any;
+
+  switch (effect.kind) {
+    case 'statModifier': {
+      const stat = STAT_LABELS[d?.stat] ?? d?.stat ?? '؟';
+      const amount = d?.amount ?? 0;
+      const sign = amount >= 0 ? '+' : '';
+      const onlyClass: string | undefined = d?.onlyClass;
+      const multiplier: boolean = !!d?.multiplier;
+
+      if (multiplier) return `${stat} ×${amount > 0 ? amount : '½'}`;
+      if (onlyClass) return `جميع ${CLASS_LABELS_SHORT[onlyClass] ?? onlyClass} ${sign}${amount}`;
+      return `${stat} ${sign}${amount}`;
+    }
+    case 'protection': return '🛡 حماية';
+    case 'fortify': return '🔩 تحصين';
+    case 'halvePoints': return '½ تنصيف';
+    case 'silenceAbilities': return '🔇 ختم قدرات';
+    case 'doubleOrNothing': return '🎲 مضاعفة أو صفر';
+    case 'forcedOutcome': return '🎯 نتيجة مضمونة';
+    case 'starAdvantage': return '⭐ أفضلية نجوم';
+    case 'sacrifice': return '🩸 تضحية';
+    case 'greedBuff': return '💰 جشع';
+    case 'lifesteal': return '🩸 سرقة صحة';
+    case 'revengeBuff': return '😤 انتقام';
+    case 'suicidePact': return '💀 اتفاقية انتحار';
+    case 'compensationBuff': return '🎁 تعويض';
+    case 'weakeningDebuff': return '📉 إضعاف';
+    case 'explosionDebuff': return '💥 انفجار';
+    case 'consecutiveLoss': return '🔄 خسائر متتالية';
+    case 'shieldGuard': return '🛡 درع';
+    case 'trap': return '🪤 فخ';
+    case 'convertDebuffs': return '🔃 تحويل نيرف→بف';
+    case 'doubleBuffs': return '✨ مضاعفة البفات';
+    case 'conversion': return '🔄 تحويل بفات الخصم';
+    case 'takeIt': return '↩️ إعادة النيرف';
+    case 'deprivation': return '🚫 سلب بف';
+    case 'pool': return '🌊 تصفير الجولة';
+    case 'prediction': return '🔮 توقع';
+    default: return effect.kind ?? '؟';
+  }
+}
 
 // ─── Round progress bar ──────────────────────────────────────────────────
 function RoundBar({ current, total }: { current: number; total: number }) {
@@ -98,7 +158,7 @@ const rb = StyleSheet.create({
   tickDone: { backgroundColor: 'rgba(228,165,42,0.6)' },
 });
 
-// ─── Score bar (fill proportional to score) ─────────────────────────────
+// ─── Score bar ─────────────────────────────────────────────────────────────
 function ScoreBar({ score, maxScore, color, reverse = false }: { score: number; maxScore: number; color: string; reverse?: boolean }) {
   const filled = useSharedValue(0);
   useEffect(() => {
@@ -112,17 +172,8 @@ function ScoreBar({ score, maxScore, color, reverse = false }: { score: number; 
   );
 }
 const sb = StyleSheet.create({
-  track: {
-    height: 8, borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 4,
-    position: 'absolute',
-    left: 0,
-  },
+  track: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: 4, position: 'absolute', left: 0 },
   fillRight: { left: undefined, right: 0 },
 });
 
@@ -139,15 +190,117 @@ function AdvantageChip({ advantage, element }: { advantage: ElementAdvantage; el
   );
 }
 const ac = StyleSheet.create({
-  chip: {
-    paddingHorizontal: SPACE.md, paddingVertical: 3,
-    borderRadius: RADIUS.full, borderWidth: 1,
-    alignSelf: 'center', marginTop: SPACE.sm,
-  },
+  chip: { paddingHorizontal: SPACE.md, paddingVertical: 3, borderRadius: RADIUS.full, borderWidth: 1, alignSelf: 'center', marginTop: SPACE.sm },
   text: { fontSize: FONT.xs - 2, letterSpacing: 0.4 },
 });
 
-// ─── Grid overlay (edit mode) ───────────────────────────────────────────────
+// ─── Active Effects Bar ─────────────────────────────────────────────────────
+function ActiveEffectsBar({ effects, side }: { effects: any[]; side: 'player' | 'bot' }) {
+  const mine = effects.filter(e => e.targetSide === side || e.targetSide === 'all');
+  if (!mine.length) return null;
+
+  const BUFF_KINDS = new Set([
+    'greedBuff', 'lifesteal', 'revengeBuff', 'compensationBuff',
+    'consecutiveLoss', 'shieldGuard', 'doubleBuffs', 'protection',
+    'fortify', 'starAdvantage',
+  ]);
+
+  return (
+    <View style={eff.row}>
+      {mine.map((e, i) => {
+        // تحديد لون: بف = أخضر، نيرف = أحمر، محايد = ذهبي
+        let isBuff = BUFF_KINDS.has(e.kind);
+        let isDebuff = false;
+        if (e.kind === 'statModifier') {
+          const amount = (e.data as any)?.amount ?? 0;
+          if (amount > 0) isBuff = true;
+          else if (amount < 0) isDebuff = true;
+        } else if (
+          e.kind === 'weakeningDebuff' || e.kind === 'explosionDebuff' ||
+          e.kind === 'silenceAbilities' || e.kind === 'suicidePact' ||
+          e.kind === 'halvePoints'
+        ) {
+          isDebuff = true;
+        }
+        const color = isBuff ? '#4ade80' : isDebuff ? '#f87171' : '#fbbf24';
+
+        // عدد الجولات المتبقية
+        const roundsLeft = e.expiresAtRound !== undefined
+          ? Math.max(0, e.expiresAtRound - (e.createdAtRound ?? 0))
+          : null;
+
+        const label = getEffectLabel(e);
+
+        return (
+          <View key={i} style={[eff.chip, { borderColor: color + '66', backgroundColor: color + '18' }]}>
+            <Text style={[eff.label, { color }]}>{label}</Text>
+            {roundsLeft !== null && roundsLeft > 0 && (
+              <View style={[eff.badge, { backgroundColor: color + '33' }]}>
+                <Text style={[eff.badgeText, { color }]}>{roundsLeft}ج</Text>
+              </View>
+            )}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+const eff = StyleSheet.create({
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 3 },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    paddingHorizontal: 7, paddingVertical: 3,
+    borderRadius: 8, borderWidth: 1,
+  },
+  label: { fontSize: 9.5, letterSpacing: 0.2 },
+  badge: {
+    paddingHorizontal: 4, paddingVertical: 1,
+    borderRadius: 5, minWidth: 16, alignItems: 'center',
+  },
+  badgeText: { fontSize: 8, fontVariant: ['tabular-nums'] } as any,
+});
+
+// ─── Choice Modal (generic list picker) ───────────────────────────────────
+function ChoiceModal({
+  visible, title, options, onSelect, onCancel,
+}: {
+  visible: boolean;
+  title: string;
+  options: { value: string; label: string }[];
+  onSelect: (value: string) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <TouchableOpacity style={cm.overlay} activeOpacity={1} onPress={onCancel}>
+        <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={cm.box}>
+          <Text style={cm.title}>{title}</Text>
+          <ScrollView style={{ maxHeight: 300 }} contentContainerStyle={{ gap: 8, padding: 4 }}>
+            {options.map(opt => (
+              <TouchableOpacity key={opt.value} style={cm.option} onPress={() => onSelect(opt.value)} activeOpacity={0.8}>
+                <Text style={cm.optionText}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <TouchableOpacity style={cm.cancel} onPress={onCancel}>
+            <Text style={cm.cancelText}>إلغاء</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+const cm = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
+  box: { width: 300, backgroundColor: 'rgba(12,18,36,0.98)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(228,165,42,0.3)', padding: SPACE.xl },
+  title: { color: COLOR.gold, fontSize: FONT.base, textAlign: 'center', marginBottom: SPACE.lg },
+  option: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: RADIUS.md, padding: SPACE.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  optionText: { color: '#f1f5f9', fontSize: FONT.sm, textAlign: 'center' },
+  cancel: { marginTop: SPACE.lg, alignItems: 'center', padding: SPACE.sm },
+  cancelText: { color: '#f87171', fontSize: FONT.sm },
+});
+
+// ─── Grid overlay ──────────────────────────────────────────────────────────
 const GridOverlay = () => (
   <View style={S.gridContainer} pointerEvents="none">
     <View style={S.vLine} />
@@ -160,7 +313,7 @@ const GridOverlay = () => (
   </View>
 );
 
-// ─── Edit sidebar ──────────────────────────────────────────────────────────────
+// ─── Edit sidebar ──────────────────────────────────────────────────────────
 const EditSidebar = ({ visible, onClose, showGrid, onToggleGrid, snapToGrid, onToggleSnap, onResetLayout }: any) => {
   const slide = useRef(new RNAnimated.Value(-300)).current;
   useEffect(() => {
@@ -192,7 +345,7 @@ const EditSidebar = ({ visible, onClose, showGrid, onToggleGrid, snapToGrid, onT
   );
 };
 
-// ─── Resize handle ──────────────────────────────────────────────────────────────
+// ─── Resize handle ─────────────────────────────────────────────────────────
 const ResizeHandle = ({ position, onResizeStart, onResizeMove, onResizeEnd }: any) => {
   const initScale = useRef(1);
   const pr = useRef(
@@ -305,7 +458,6 @@ export default function BattleScreen() {
   const insets = useSafeAreaInsets();
   const { width, height, isLandscape, size } = useLandscapeLayout();
 
-  // card sizing
   const maxH = height * 0.54;
   const cardWidth = Math.min(width * CARD_WIDTH_FACTOR[size] * 0.88, maxH / 1.5);
   const cardHeight = cardWidth * 1.5;
@@ -330,6 +482,15 @@ export default function BattleScreen() {
   const [showPopularityModal, setShowPopularityModal] = useState(false);
   const [selectedPopularityRound, setSelectedPopularityRound] = useState<number | null>(null);
   const [activeDamageNumbers, setActiveDamageNumbers] = useState<{ id: string; side: 'player' | 'bot'; value: number; variant: DamageNumberVariant }[]>([]);
+
+  // ── Choice modal state (Propaganda / AddElement / SwapClass / Dilemma) ──
+  const [choiceModal, setChoiceModal] = useState<{
+    visible: boolean;
+    title: string;
+    options: { value: string; label: string }[];
+    abilityType: string;
+    extraData?: any;
+  }>({ visible: false, title: '', options: [], abilityType: '' });
 
   // edit mode
   const [editMode, setEditMode] = useState(false);
@@ -357,7 +518,7 @@ export default function BattleScreen() {
   const botAnim = useSharedValue(0);
   const vsOpacity = useSharedValue(0);
   const resultOp = useSharedValue(0);
-  const flashAnim = useSharedValue(0); // arena flash on attack
+  const flashAnim = useSharedValue(0);
 
   const playerStyle = useAnimatedStyle(() => ({ transform: [{ scale: playerAnim.value }] }));
   const botStyle = useAnimatedStyle(() => ({ transform: [{ scale: botAnim.value }] }));
@@ -398,7 +559,6 @@ export default function BattleScreen() {
 
   const handleExecuteAttack = useCallback(() => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    // cinematic flash
     flashAnim.value = withSequence(
       withTiming(0.35, { duration: 60 }),
       withTiming(0, { duration: 300 }),
@@ -417,7 +577,6 @@ export default function BattleScreen() {
     else { setPhase('selection'); nextRound(); }
   }, [isGameOver, router, nextRound]);
 
-  // Prediction / Popularity handlers
   const handleConfirmPrediction = useCallback(() => {
     useAbility(predictionAbilityType, { predictions: predictionSelections });
     setShowPredictionModal(false); setPredictionSelections({});
@@ -430,6 +589,52 @@ export default function BattleScreen() {
     setShowPopularityModal(false); setSelectedPopularityRound(null);
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [popularityAbilityType, selectedPopularityRound, useAbility]);
+
+  // ── Choice modal handlers ────────────────────────────────────────────────
+  const openChoiceModal = useCallback((abilityType: string) => {
+    if (abilityType === 'Propaganda') {
+      setChoiceModal({
+        visible: true,
+        title: '🎙️ بروباغاندا — اختر فئة الخصم',
+        options: ALL_CLASSES.map(c => ({ value: c, label: CLASS_LABELS[c] })),
+        abilityType,
+      });
+    } else if (abilityType === 'AddElement') {
+      setChoiceModal({
+        visible: true,
+        title: '🧪 إضافة عنصر — اختر العنصر',
+        options: ALL_ELEMENTS.map(e => ({ value: e, label: ELEMENT_LABELS[e] })),
+        abilityType,
+      });
+    } else if (abilityType === 'SwapClass') {
+      setChoiceModal({
+        visible: true,
+        title: '🔀 تبديل الفئة — اختر فئتك',
+        options: ALL_CLASSES.map(c => ({ value: c, label: CLASS_LABELS[c] })),
+        abilityType,
+      });
+    } else if (abilityType === 'Dilemma') {
+      const botPast = state.roundResults.map((r, i) => ({
+        value: String(i),
+        label: `جولة ${r.round}: ${r.botCard.nameAr ?? r.botCard.name}`,
+      }));
+      if (!botPast.length) { Alert.alert('لا يوجد كروت سابقة للخصم بعد'); return; }
+      setChoiceModal({
+        visible: true,
+        title: '🌀 الوهقة — اختر كرت الخصم السابق',
+        options: botPast,
+        abilityType,
+      });
+    }
+  }, [state.roundResults]);
+
+  const handleChoiceSelect = useCallback((value: string) => {
+    const { abilityType } = choiceModal;
+    setChoiceModal(p => ({ ...p, visible: false }));
+    useAbility(abilityType as any, { selection: value });
+    setIsAbilitiesModalOpen(false);
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [choiceModal, useAbility]);
 
   // Round result effect
   useEffect(() => {
@@ -475,6 +680,9 @@ export default function BattleScreen() {
 
   const maxScore = state.totalRounds;
 
+  // ── Abilities that need a choice modal ──────────────────────────────────
+  const CHOICE_ABILITIES = ['Propaganda', 'AddElement', 'SwapClass', 'Dilemma'];
+
   if (!displayPlayerCard || !displayBotCard) {
     return (
       <View style={S.root}>
@@ -493,7 +701,6 @@ export default function BattleScreen() {
       <StatusBar hidden />
       <View style={S.bgWrap}><LuxuryBackground /></View>
 
-      {/* Attack flash */}
       <Animated.View style={[S.flashOverlay, flashStyle]} pointerEvents="none" />
 
       {editMode && showGrid && <GridOverlay />}
@@ -506,7 +713,6 @@ export default function BattleScreen() {
 
       <View style={[S.battleWrap, { paddingLeft: insets.left, paddingRight: insets.right }]} pointerEvents={editMode ? 'auto' : 'box-none'}>
         {editMode ? (
-          // ─ EDIT MODE ─
           <>
             <DraggableResizable id="playerCard" initialX={elements.playerCard.x} initialY={elements.playerCard.y} initialScale={elements.playerCard.scale} minScale={elements.playerCard.minScale} maxScale={elements.playerCard.maxScale} snapToGrid={snapToGrid} onUpdate={updateElement}>
               <View style={S.editElem}><Text style={S.editLabel}>👤 بطاقة اللاعب</Text>
@@ -529,7 +735,6 @@ export default function BattleScreen() {
             </DraggableResizable>
           </>
         ) : (
-          // ─ NORMAL PLAY MODE ─
           <View style={S.normalRoot}>
             <BattleResultOverlay
               visible={showResult && phase === 'waiting'}
@@ -544,11 +749,8 @@ export default function BattleScreen() {
 
               {/* ══ TOP HUD ══ */}
               <View style={S.topHud}>
-                {/* Player */}
                 <View style={S.hudSide}>
-                  <View style={[S.avatar, { borderColor: '#4ade80' }]}>
-                    <Text style={{ fontSize: 18 }}>👤</Text>
-                  </View>
+                  <View style={[S.avatar, { borderColor: '#4ade80' }]}><Text style={{ fontSize: 18 }}>👤</Text></View>
                   <View style={S.hudInfo}>
                     <Text style={[S.hudName, { color: '#4ade80' }]}>لاعب</Text>
                     <ScoreBar score={state.playerScore} maxScore={maxScore} color="#4ade80" />
@@ -556,7 +758,6 @@ export default function BattleScreen() {
                   <Text style={[S.hudScore, { color: '#4ade80' }]}>{state.playerScore}</Text>
                 </View>
 
-                {/* Center */}
                 <View style={S.hudCenter}>
                   <Text style={S.hudRound}>جولة {state.currentRound + 1} / {state.totalRounds}</Text>
                   <RoundBar current={state.currentRound} total={state.totalRounds} />
@@ -565,18 +766,30 @@ export default function BattleScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Bot */}
                 <View style={[S.hudSide, S.hudSideRight]}>
                   <Text style={[S.hudScore, { color: '#f87171' }]}>{state.botScore}</Text>
                   <View style={S.hudInfo}>
                     <Text style={[S.hudName, { color: '#f87171', textAlign: 'right' }]}>بوت</Text>
                     <ScoreBar score={state.botScore} maxScore={maxScore} color="#f87171" reverse />
                   </View>
-                  <View style={[S.avatar, { borderColor: '#f87171' }]}>
-                    <Text style={{ fontSize: 18 }}>🤖</Text>
-                  </View>
+                  <View style={[S.avatar, { borderColor: '#f87171' }]}><Text style={{ fontSize: 18 }}>🤖</Text></View>
                 </View>
               </View>
+
+              {/* ══ ACTIVE EFFECTS BAR ══ */}
+              {state.activeEffects.length > 0 && (
+                <View style={S.effectsBar}>
+                  <View style={S.effectsBarSide}>
+                    <Text style={S.effectsBarLabel}>تأثيراتك</Text>
+                    <ActiveEffectsBar effects={state.activeEffects} side="player" />
+                  </View>
+                  <View style={S.effectsBarDivider} />
+                  <View style={[S.effectsBarSide, { alignItems: 'flex-end' }]}>
+                    <Text style={[S.effectsBarLabel, { textAlign: 'right' }]}>تأثيرات البوت</Text>
+                    <ActiveEffectsBar effects={state.activeEffects} side="bot" />
+                  </View>
+                </View>
+              )}
 
               {/* ══ ARENA ══ */}
               <View style={S.arena}>
@@ -598,13 +811,11 @@ export default function BattleScreen() {
 
                 {/* CENTER COLUMN */}
                 <View style={S.centerCol}>
-                  {/* VS badge */}
                   <Animated.View style={[S.vsBadge, vsStyle]}>
                     <Text style={S.vsIcon}>⚔️</Text>
                     <Text style={S.vsText}>VS</Text>
                   </Animated.View>
 
-                  {/* Expected outcome chip */}
                   {phase === 'action' && expectedRoundResult && (
                     <Animated.View style={[S.previewChip, vsStyle, {
                       borderColor: expectedRoundResult.winner === 'player' ? '#4ade8055' : expectedRoundResult.winner === 'bot' ? '#f8717155' : '#fbbf2455',
@@ -618,7 +829,6 @@ export default function BattleScreen() {
                     </Animated.View>
                   )}
 
-                  {/* Round result badge */}
                   {(phase === 'result' || phase === 'waiting') && lastRoundResult && (
                     <View style={[
                       S.resultBadge,
@@ -635,7 +845,6 @@ export default function BattleScreen() {
                     </View>
                   )}
 
-                  {/* CTA buttons */}
                   <View style={S.ctaStack}>
                     {phase === 'action' ? (
                       <TouchableOpacity style={[S.ctaBtn, S.ctaBtnAttack]} onPress={handleExecuteAttack} activeOpacity={0.85}>
@@ -653,7 +862,6 @@ export default function BattleScreen() {
                       </View>
                     )}
 
-                    {/* Abilities */}
                     <TouchableOpacity
                       style={[S.ctaBtn, S.ctaBtnAbilities, phase !== 'action' && S.ctaBtnDisabled]}
                       onPress={() => phase === 'action' && setIsAbilitiesModalOpen(true)}
@@ -679,7 +887,6 @@ export default function BattleScreen() {
                   {showResult && lastRoundResult && (
                     <AdvantageChip advantage={lastRoundResult.botElementAdvantage} element={lastRoundResult.botCard.element} />
                   )}
-                  {/* Bot status */}
                   <View style={S.botStatus}>
                     <Text style={S.botStatusText}>
                       {phase === 'action' ? '🤖 ينتظر...' : phase === 'combat' ? '⚔️ يقاتل!' : '🤖 جاهز'}
@@ -688,7 +895,6 @@ export default function BattleScreen() {
                 </View>
               </View>
 
-              {/* Edit mode FAB */}
               <TouchableOpacity
                 style={[S.editFab, editMode && S.editFabActive]}
                 onPress={() => setEditMode(!editMode)}
@@ -733,16 +939,26 @@ export default function BattleScreen() {
                       key={i}
                       onPress={() => {
                         if (!canUse) { if (isSealed) Alert.alert('القدرات مختومة', 'لا يمكنك تفعيل القدرات خلال مدة الختم.'); return; }
+
+                        // Prediction abilities
                         if (['LogicalEncounter', 'Eclipse', 'Trap', 'Pool'].includes(ability.type)) {
                           if (!upcomingRounds.length) return;
                           setPredictionSelections({}); setPredictionAbilityType(ability.type as any);
                           setIsAbilitiesModalOpen(false); setShowPredictionModal(true); return;
                         }
+                        // Popularity abilities
                         if (['Popularity', 'Rescue', 'Penetration'].includes(ability.type)) {
                           if (!remainingRounds.length) return;
                           setSelectedPopularityRound(null); setPopularityAbilityType(ability.type as any);
                           setIsAbilitiesModalOpen(false); setShowPopularityModal(true); return;
                         }
+                        // Choice abilities (Propaganda / AddElement / SwapClass / Dilemma)
+                        if (CHOICE_ABILITIES.includes(ability.type)) {
+                          setIsAbilitiesModalOpen(false);
+                          openChoiceModal(ability.type);
+                          return;
+                        }
+                        // Default
                         useAbility(ability.type); setIsAbilitiesModalOpen(false);
                         if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       }}
@@ -770,6 +986,15 @@ export default function BattleScreen() {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* Choice modal */}
+      <ChoiceModal
+        visible={choiceModal.visible}
+        title={choiceModal.title}
+        options={choiceModal.options}
+        onSelect={handleChoiceSelect}
+        onCancel={() => setChoiceModal(p => ({ ...p, visible: false }))}
+      />
 
       <PredictionModal
         visible={showPredictionModal}
@@ -837,7 +1062,6 @@ export default function BattleScreen() {
 
 // ──────────────────────────── STYLES ───────────────────────────
 const S = StyleSheet.create({
-  // ─ root
   root: { flex: 1, backgroundColor: '#080612' },
   bgWrap: { position: 'absolute', inset: 0, zIndex: 0 },
   battleWrap: { flex: 1, zIndex: 1 },
@@ -846,205 +1070,81 @@ const S = StyleSheet.create({
     backgroundColor: '#fff', pointerEvents: 'none',
   },
 
-  // ─ loading
   loadWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadText: { fontSize: FONT.xl, color: COLOR.textMuted },
 
-  // ─ normal layout
   normalRoot: { flex: 1 },
-  screen: {
-    flex: 1,
-    flexDirection: 'column',
-    paddingBottom: 8,
-  },
+  screen: { flex: 1, flexDirection: 'column', paddingBottom: 8 },
 
-  // ─ TOP HUD
+  // ── TOP HUD
   topHud: {
-    height: 68,
-    flexDirection: 'row',
-    alignItems: 'center',
+    height: 68, flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: SPACE.lg,
     backgroundColor: 'rgba(8,6,18,0.82)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(228,165,42,0.18)',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(228,165,42,0.18)',
     gap: SPACE.sm,
   },
-  hudSide: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.sm,
-  },
+  hudSide: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   hudSideRight: { justifyContent: 'flex-end' },
-  avatar: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 2,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   hudInfo: { flex: 1, gap: 4 },
   hudName: { fontSize: FONT.xs, letterSpacing: 0.5 },
   hudScore: { fontSize: FONT.xxl, fontVariant: ['tabular-nums'] } as any,
-  hudCenter: {
-    width: 160,
-    alignItems: 'center',
-    gap: SPACE.xs,
-  },
+  hudCenter: { width: 160, alignItems: 'center', gap: SPACE.xs },
   hudRound: { color: '#e2e8f0', fontSize: FONT.sm, letterSpacing: 0.4 },
-  historyBtn: {
-    paddingHorizontal: SPACE.sm,
-    paddingVertical: 2,
-    borderRadius: RADIUS.full,
-    backgroundColor: 'rgba(228,165,42,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(228,165,42,0.25)',
-  },
+  historyBtn: { paddingHorizontal: SPACE.sm, paddingVertical: 2, borderRadius: RADIUS.full, backgroundColor: 'rgba(228,165,42,0.1)', borderWidth: 1, borderColor: 'rgba(228,165,42,0.25)' },
   historyBtnText: { color: COLOR.gold, fontSize: FONT.xs - 2 },
 
-  // ─ ARENA
-  arena: {
-    flex: 1,
+  // ── ACTIVE EFFECTS BAR
+  effectsBar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: SPACE.lg,
-    paddingTop: SPACE.md,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
     gap: SPACE.sm,
+    minHeight: 32,
   },
-  playerPanel: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(10,26,10,0.4)',
-    borderWidth: 1,
-    borderColor: 'rgba(74,222,128,0.2)',
-    borderRadius: RADIUS.lg,
-    paddingVertical: SPACE.lg,
-    gap: SPACE.sm,
-    height: '100%',
-  },
-  botPanel: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(26,10,10,0.4)',
-    borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.2)',
-    borderRadius: RADIUS.lg,
-    paddingVertical: SPACE.lg,
-    gap: SPACE.sm,
-    height: '100%',
-  },
-  panelLabel: {
-    color: COLOR.textMuted,
-    fontSize: FONT.xs - 2,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  botStatus: {
-    marginTop: SPACE.xs,
-    paddingHorizontal: SPACE.md,
-    paddingVertical: 3,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
+  effectsBarSide: { flex: 1, alignItems: 'flex-start' },
+  effectsBarDivider: { width: 1, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.08)' },
+  effectsBarLabel: { color: 'rgba(255,255,255,0.3)', fontSize: 9, letterSpacing: 0.5, marginBottom: 2 },
+
+  // ── ARENA
+  arena: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACE.lg, paddingTop: SPACE.md, gap: SPACE.sm },
+  playerPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,26,10,0.4)', borderWidth: 1, borderColor: 'rgba(74,222,128,0.2)', borderRadius: RADIUS.lg, paddingVertical: SPACE.lg, gap: SPACE.sm, height: '100%' },
+  botPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(26,10,10,0.4)', borderWidth: 1, borderColor: 'rgba(248,113,113,0.2)', borderRadius: RADIUS.lg, paddingVertical: SPACE.lg, gap: SPACE.sm, height: '100%' },
+  panelLabel: { color: COLOR.textMuted, fontSize: FONT.xs - 2, letterSpacing: 1, textTransform: 'uppercase' },
+  botStatus: { marginTop: SPACE.xs, paddingHorizontal: SPACE.md, paddingVertical: 3, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   botStatusText: { color: '#94a3b8', fontSize: FONT.xs - 2 },
 
-  // ─ CENTER COLUMN
-  centerCol: {
-    width: 152,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACE.sm,
-    zIndex: 20,
-  },
-  vsBadge: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: 'rgba(8,6,18,0.9)',
-    borderWidth: 2,
-    borderColor: 'rgba(228,165,42,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOW.gold,
-  },
+  // ── CENTER COLUMN
+  centerCol: { width: 152, alignItems: 'center', justifyContent: 'center', gap: SPACE.sm, zIndex: 20 },
+  vsBadge: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(8,6,18,0.9)', borderWidth: 2, borderColor: 'rgba(228,165,42,0.7)', alignItems: 'center', justifyContent: 'center', ...SHADOW.gold },
   vsIcon: { fontSize: 18 },
   vsText: { fontSize: FONT.sm, color: COLOR.gold, letterSpacing: 1 },
-
-  previewChip: {
-    paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs,
-    borderRadius: RADIUS.full, borderWidth: 1,
-    alignItems: 'center',
-  },
+  previewChip: { paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderRadius: RADIUS.full, borderWidth: 1, alignItems: 'center' },
   previewChipText: { fontSize: FONT.xs - 2, textAlign: 'center' },
-
-  resultBadge: {
-    paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm,
-    borderRadius: RADIUS.pill, borderWidth: 1.5,
-    alignItems: 'center',
-  },
+  resultBadge: { paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderRadius: RADIUS.pill, borderWidth: 1.5, alignItems: 'center' },
   resultBadgeText: { fontSize: FONT.base, letterSpacing: 0.5 },
 
-  // ─ CTA
+  // ── CTA
   ctaStack: { gap: SPACE.sm, width: '100%', alignItems: 'center' },
-  ctaBtn: {
-    width: 140, height: 48,
-    borderRadius: RADIUS.pill,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACE.xs,
-    borderWidth: 1.5,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  ctaBtnAttack: {
-    backgroundColor: 'rgba(74,222,128,0.12)',
-    borderColor: '#4ade80',
-    shadowColor: '#4ade80',
-    shadowOpacity: 0.5,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  ctaBtnNext: {
-    backgroundColor: 'rgba(96,165,250,0.12)',
-    borderColor: '#60a5fa',
-    shadowColor: '#60a5fa',
-    shadowOpacity: 0.5,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  ctaBtnAbilities: {
-    backgroundColor: 'rgba(168,85,247,0.12)',
-    borderColor: '#a855f7',
-    shadowColor: '#a855f7',
-    shadowOpacity: 0.45,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  ctaBtnDisabled: {
-    backgroundColor: 'rgba(71,85,105,0.2)',
-    borderColor: '#475569',
-    shadowOpacity: 0,
-  },
+  ctaBtn: { width: 140, height: 48, borderRadius: RADIUS.pill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, borderWidth: 1.5, backgroundColor: 'rgba(0,0,0,0.4)' },
+  ctaBtnAttack: { backgroundColor: 'rgba(74,222,128,0.12)', borderColor: '#4ade80', shadowColor: '#4ade80', shadowOpacity: 0.5, shadowOffset: { width: 0, height: 0 }, shadowRadius: 10, elevation: 6 },
+  ctaBtnNext: { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: '#60a5fa', shadowColor: '#60a5fa', shadowOpacity: 0.5, shadowOffset: { width: 0, height: 0 }, shadowRadius: 8, elevation: 4 },
+  ctaBtnAbilities: { backgroundColor: 'rgba(168,85,247,0.12)', borderColor: '#a855f7', shadowColor: '#a855f7', shadowOpacity: 0.45, shadowOffset: { width: 0, height: 0 }, shadowRadius: 8, elevation: 4 },
+  ctaBtnDisabled: { backgroundColor: 'rgba(71,85,105,0.2)', borderColor: '#475569', shadowOpacity: 0 },
   ctaBtnIcon: { fontSize: 16 },
   ctaBtnText: { color: '#f1f5f9', fontSize: FONT.sm, letterSpacing: 0.3 },
 
-  // ─ edit FAB
-  editFab: {
-    position: 'absolute', bottom: 16, right: 16,
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(228,165,42,0.15)',
-    borderWidth: 1, borderColor: COLOR.goldDim,
-    alignItems: 'center', justifyContent: 'center',
-    zIndex: 50,
-  },
+  // ── edit FAB
+  editFab: { position: 'absolute', bottom: 16, right: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(228,165,42,0.15)', borderWidth: 1, borderColor: COLOR.goldDim, alignItems: 'center', justifyContent: 'center', zIndex: 50 },
   editFabActive: { backgroundColor: 'rgba(74,222,128,0.2)', borderColor: '#4ade80' },
   editFabText: { fontSize: 16 },
 
-  // ─ GRID
+  // ── GRID
   gridContainer: { position: 'absolute', inset: 0, zIndex: 2 },
   vLine: { position: 'absolute', left: '50%', top: 0, bottom: 0, width: 2, backgroundColor: 'rgba(228,165,42,0.4)' },
   hLine: { position: 'absolute', top: '50%', left: 0, right: 0, height: 2, backgroundColor: 'rgba(228,165,42,0.4)' },
@@ -1052,17 +1152,9 @@ const S = StyleSheet.create({
   hLineThin: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(228,165,42,0.15)' },
   gridCenter: { position: 'absolute', left: '50%', top: '50%', width: 12, height: 12, borderRadius: 6, backgroundColor: COLOR.gold, marginLeft: -6, marginTop: -6 },
 
-  // ─ SIDEBAR
-  sidebar: {
-    position: 'absolute', left: 0, top: 0, bottom: 0,
-    width: 280, backgroundColor: 'rgba(20,14,30,0.97)',
-    zIndex: 300, borderRightWidth: 2, borderRightColor: 'rgba(228,165,42,0.3)',
-  },
-  sidebarHead: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: SPACE.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(228,165,42,0.2)',
-    backgroundColor: 'rgba(228,165,42,0.06)',
-  },
+  // ── SIDEBAR
+  sidebar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 280, backgroundColor: 'rgba(20,14,30,0.97)', zIndex: 300, borderRightWidth: 2, borderRightColor: 'rgba(228,165,42,0.3)' },
+  sidebarHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACE.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(228,165,42,0.2)', backgroundColor: 'rgba(228,165,42,0.06)' },
   sidebarTitle: { color: COLOR.gold, fontSize: FONT.base },
   sidebarClose: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248,113,113,0.15)', borderRadius: 15 },
   sidebarSection: { marginBottom: SPACE.lg, padding: SPACE.md, backgroundColor: 'rgba(228,165,42,0.04)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(228,165,42,0.12)' },
@@ -1073,7 +1165,7 @@ const S = StyleSheet.create({
   sidebarAction: { padding: SPACE.md, backgroundColor: COLOR.gold, borderRadius: RADIUS.md, alignItems: 'center' },
   sidebarActionText: { color: '#1A0D1A', fontSize: FONT.sm },
 
-  // ─ DraggableResizable
+  // ── DraggableResizable
   resizeHandle: { position: 'absolute', width: 12, height: 12, backgroundColor: '#fff', borderWidth: 2, borderColor: '#2196F3', borderRadius: 2, zIndex: 10 },
   resizeHandleInner: { width: '100%', height: '100%', backgroundColor: '#2196F3' },
   rh_topleft: { top: 0, left: 0 },
@@ -1085,15 +1177,7 @@ const S = StyleSheet.create({
   rh_left: { top: '50%', left: 0, marginTop: -6 },
   rh_right: { top: '50%', right: 0, marginTop: -6 },
   transformHandles: { position: 'absolute', top: -30, left: -30, right: -30, bottom: -30 },
-  scaleControls: {
-    position: 'absolute', bottom: -60, left: '50%',
-    transform: [{ translateX: -85 }],
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(28,28,40,0.95)',
-    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
-    borderRadius: RADIUS.md, gap: SPACE.sm,
-    borderWidth: 1.5, borderColor: '#2196F3',
-  },
+  scaleControls: { position: 'absolute', bottom: -60, left: '50%', transform: [{ translateX: -85 }], flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(28,28,40,0.95)', paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.md, gap: SPACE.sm, borderWidth: 1.5, borderColor: '#2196F3' },
   scaleBtn: { backgroundColor: '#2196F3', width: 34, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   scaleBtnDisabled: { backgroundColor: '#555', opacity: 0.5 },
   scaleBtnText: { color: '#fff', fontSize: 22, lineHeight: 22 },
@@ -1102,40 +1186,17 @@ const S = StyleSheet.create({
   editElem: { alignItems: 'center' },
   editLabel: { color: COLOR.gold, fontSize: FONT.sm, marginBottom: SPACE.sm },
 
-  // ─ MODALS
+  // ── MODALS
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
-  abilitiesModal: {
-    width: '92%', maxWidth: 820,
-    backgroundColor: 'rgba(12,18,36,0.97)',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: 'rgba(51,65,85,0.7)',
-    padding: SPACE.xl, paddingBottom: SPACE.lg,
-  },
-  historyModal: {
-    backgroundColor: 'rgba(18,14,28,0.97)',
-    borderRadius: RADIUS.lg,
-    width: '90%', maxHeight: '82%',
-    padding: SPACE.xl,
-    borderWidth: 1, borderColor: '#1e293b',
-  },
-  modalHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: SPACE.lg,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
-    paddingBottom: SPACE.md,
-  },
+  abilitiesModal: { width: '92%', maxWidth: 820, backgroundColor: 'rgba(12,18,36,0.97)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(51,65,85,0.7)', padding: SPACE.xl, paddingBottom: SPACE.lg },
+  historyModal: { backgroundColor: 'rgba(18,14,28,0.97)', borderRadius: RADIUS.lg, width: '90%', maxHeight: '82%', padding: SPACE.xl, borderWidth: 1, borderColor: '#1e293b' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACE.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)', paddingBottom: SPACE.md },
   modalTitle: { color: '#f8fafc', fontSize: FONT.xl },
   modalClose: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248,113,113,0.12)', borderRadius: 16 },
   modalCloseText: { color: '#f87171', fontSize: 18 },
   emptyText: { color: '#64748b', textAlign: 'center', marginVertical: SPACE.xxl, fontSize: FONT.base },
 
-  historyRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderLeftWidth: 3, paddingLeft: SPACE.lg,
-    paddingVertical: SPACE.md, marginBottom: SPACE.lg,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: RADIUS.md,
-    gap: SPACE.lg,
-  },
+  historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderLeftWidth: 3, paddingLeft: SPACE.lg, paddingVertical: SPACE.md, marginBottom: SPACE.lg, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: RADIUS.md, gap: SPACE.lg },
   historyCardWrap: { alignItems: 'center', position: 'relative' },
   crown: { fontSize: 20, position: 'absolute', top: -20, alignSelf: 'center', zIndex: 10 },
   historyCenter: { flex: 1, alignItems: 'center', gap: SPACE.xs },

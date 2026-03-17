@@ -10,7 +10,7 @@ export type Element = 'fire' | 'ice' | 'water' | 'earth' | 'lightning' | 'wind';
 
 export type Tag = 'sword' | 'shield' | 'magic' | 'bow' | 'crown';
 
-/** Rarity tier for a card — drives visual design (gradient, border, glow, particles) */
+/** Rarity tier for a card */
 export type CardRarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 /** Special in-game effects a card can carry */
@@ -29,33 +29,23 @@ export interface Card {
   id: string;
   name: string;
   nameAr: string;
-  /** English display name for card subtitle */
   nameEn?: string;
   finalImage: ImageSourcePropType;
-  hp: number;
   attack: number;
   defense: number;
-  speed: number;
   race: Race;
   cardClass: CardClass;
   element: Element;
   tags: Tag[];
   emoji: string;
   videoUrl?: string;
-  /** Visual rarity tier — defaults to 'common' if absent */
   rarity?: CardRarity;
-  /**
-   * Star rating shown on the card.
-   * Stored as plain number (0–5) so AsyncStorage round-trips work without type errors.
-   * 0 = no stars displayed.
-   */
   stars?: number;
-  /** Special ability text displayed on the card (Arabic) */
   specialAbility?: string;
-  /** Special gameplay effects this card carries */
   cardEffects?: CardEffect[];
-  /** Animation preset key for battle animations */
   animationPreset?: CardAnimationPreset;
+  /** Optional ability slot — can be undefined after Recall/Merge/etc. */
+  ability?: AbilityType;
 }
 
 export type AbilityType =
@@ -123,7 +113,23 @@ export type EffectKind =
   | 'doubleOrNothing'
   | 'forcedOutcome'
   | 'starAdvantage'
-  | 'sacrifice';
+  | 'sacrifice'
+  | 'greedBuff'
+  | 'lifesteal'
+  | 'revengeBuff'
+  | 'suicidePact'
+  | 'compensationBuff'
+  | 'weakeningDebuff'
+  | 'explosionDebuff'
+  | 'consecutiveLoss'
+  | 'shieldGuard'
+  | 'trap'
+  | 'convertDebuffs'
+  | 'doubleBuffs'
+  | 'conversion'
+  | 'takeIt'
+  | 'deprivation'
+  | 'pool';
 
 export interface Effect {
   id: string;
@@ -140,7 +146,7 @@ export interface Effect {
 export interface ActiveEffect {
   type: 'buff' | 'debuff' | 'seal';
   target: 'player' | 'bot' | 'all';
-  stat: 'attack' | 'defense' | 'hp' | 'all' | 'ability';
+  stat: 'attack' | 'defense' | 'ability';
   value: number;
   roundsLeft: number;
   sourceAbility: AbilityType;

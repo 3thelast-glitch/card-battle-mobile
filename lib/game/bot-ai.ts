@@ -32,7 +32,7 @@ export interface BotMemory {
   playerFavoredElements: Record<string, number>;
   botLossStreak: number;
   totalRoundsPlayed: number;
-  strongestBotAbility: AbilityType | null; // يُحفظ لآخر جولة في مستوى 5
+  strongestBotAbility: AbilityType | null;
 }
 
 export interface BotDecision {
@@ -89,7 +89,8 @@ export function resetBotMemory(): void {
 // ──────────────────────────────── Helpers ────────────────────────────────
 const clamp = (v: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 
-function cardPower(c: Card): number { return c.attack + c.defense + c.speed; }
+// cardPower → attack + defense فقط (حذفنا speed)
+function cardPower(c: Card): number { return c.attack + c.defense; }
 
 function cardPowerAgainst(attacker: Card, defender: Card): number {
   const base = cardPower(attacker);
@@ -107,7 +108,6 @@ export function chooseBotMode(
 ): BotMode {
   const diff = botScore - playerScore;
   const roundsLeft = totalRounds - currentRound;
-  // مستوى 5 يتحول للـ mode أسرع (بفارق 1 بدل 2)
   const aggressiveThreshold = difficulty >= 5 ? -1 : -2;
   const safeGap = difficulty >= 5 ? 1 : 2;
 
@@ -136,7 +136,7 @@ function evaluateCardVs(
   const totalPower = botPower + playerPower;
 
   const winChance = totalPower > 0 ? clamp(botPower / totalPower) : 0.5;
-  const maxPossible = Math.max(...ALL_CARDS.map(c => c.attack + c.defense + c.speed)) * 1.5;
+  const maxPossible = Math.max(...ALL_CARDS.map(c => c.attack + c.defense)) * 1.5;
   const damage = clamp(botPower / maxPossible);
   const element = adv === 'strong' ? 1.0 : adv === 'weak' ? 0.0 : 0.5;
   const scoreDiff = Math.abs(botScore - playerScore);
@@ -197,22 +197,18 @@ export function evaluateAbilityTiming(
 
 // ──────────────────────────────── Per-level ability config ────────────────────────────────
 
-/** العتبة التي فوقها يستخدم القدرة */
 function abilityThreshold(mode: BotMode, difficulty: DifficultyLevel): number {
   const base = mode === 'aggressive' ? 0.50 : mode === 'safe' ? 0.68 : 0.58;
-  // مستوى 3 يرفع العتبة → أكثر انتقائية
   if (difficulty === 3) return Math.min(base + 0.08, 0.90);
-  // مستوى 5 يخفض العتبة قليلاً → أكثر استعداداً للاستخدام عند التوقيت الصح
   if (difficulty >= 5) return Math.max(base - 0.05, 0.35);
   return base;
 }
 
-/** noise عشوائية حسب المستوى */
 function abilityNoise(difficulty: DifficultyLevel): number {
-  if (difficulty <= 1) return 0;                          // لا فرق (لا يستخدم قدرات)
-  if (difficulty === 2) return (Math.random() - 0.5) * 0.20;  // عشوائية عالية
-  if (difficulty === 3) return (Math.random() - 0.5) * 0.08;  // عشوائية خفيفة
-  return 0;                                               // 4 و5: لا عشوائية في القدرات
+  if (difficulty <= 1) return 0;
+  if (difficulty === 2) return (Math.random() - 0.5) * 0.20;
+  if (difficulty === 3) return (Math.random() - 0.5) * 0.08;
+  return 0;
 }
 
 // ──────────────────────────────── Main decision engine ────────────────────────────────
@@ -234,12 +230,10 @@ export function decideBotAbility(
 
   const available = botAbilities.filter(a => !a.used);
 
-  // ── مستوى 1: لا يستخدم قدرات أبداً ──
   if (available.length === 0 || difficulty <= 1) {
     return { useAbility: false, mode, score: noAbilityScore, breakdown: noAbilityBreakdown };
   }
 
-  // ── مستوى 5: يحتفظ بأقوى قدرة للجولة الأخيرة ──
   const roundsLeft = totalRounds - currentRound;
   let lockedAbility: AbilityType | null = null;
   if (difficulty >= 5 && roundsLeft > 1 && memory.strongestBotAbility) {
@@ -250,7 +244,6 @@ export function decideBotAbility(
   let bestAbility: AbilityType | undefined;
 
   for (const ab of available) {
-    // مستوى 5 يحتجز القدرة الأقوى للنهاية
     if (lockedAbility && ab.type === lockedAbility) continue;
 
     const timing = evaluateAbilityTiming(
@@ -296,7 +289,6 @@ function pickBalanced(count: number): Card[] {
 }
 
 function pickBalancedHard(count: number): Card[] {
-  // مستوى 3: أفضل الثلث بدل النصف → أقوى من متوسط
   const top = [...ALL_CARDS]
     .sort((a, b) => cardPower(b) - cardPower(a))
     .slice(0, Math.ceil(ALL_CARDS.length / 3));
@@ -304,10 +296,6 @@ function pickBalancedHard(count: number): Card[] {
   return Array.from({ length: count }, (_, i) => shuffled[i % shuffled.length]);
 }
 
-/**
- * مستوى 4 و5: يختار بذكاء ضد بطاقات اللاعب
- * مع عشوائية: 4 → 5٪، 5 → 3٪
- */
 function pickSmart(count: number, playerCards: Card[], randomnessFraction: number): Card[] {
   const memory = getBotMemory();
   const selected: Card[] = [];
@@ -316,7 +304,6 @@ function pickSmart(count: number, playerCards: Card[], randomnessFraction: numbe
     const playerCard = playerCards[i % playerCards.length];
     const pool = ALL_CARDS.filter(c => !selected.some(s => s.id === c.id));
 
-    // عشوائية خفيفة: بنسبة randomnessFraction يختار عشوائياً من أفضل 5 بدل الأول
     const scored = pool.map(card => ({
       card,
       score: cardPowerAgainst(card, playerCard)
@@ -326,7 +313,6 @@ function pickSmart(count: number, playerCards: Card[], randomnessFraction: numbe
     scored.sort((a, b) => b.score - a.score);
 
     if (Math.random() < randomnessFraction) {
-      // اختر بشكل عشوائي من أفضل 5 كروت
       const top5 = scored.slice(0, Math.min(5, scored.length));
       selected.push(top5[Math.floor(Math.random() * top5.length)].card);
     } else {
@@ -345,8 +331,8 @@ export function getBotCards(
   if (difficulty <= 1) return pickRandom(count);
   if (difficulty === 2) return pickBalanced(count);
   if (difficulty === 3) return pickBalancedHard(count);
-  if (difficulty === 4) return pickSmart(count, playerCards ?? [], 0.05); // 5٪ عشوائية
-  return pickSmart(count, playerCards ?? [], 0.03);                        // 3٪ عشوائية
+  if (difficulty === 4) return pickSmart(count, playerCards ?? [], 0.05);
+  return pickSmart(count, playerCards ?? [], 0.03);
 }
 
 // ──────────────────────────────── Strategy label ────────────────────────────────
